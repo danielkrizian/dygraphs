@@ -23,13 +23,7 @@ Dygraph.OPTIONS_REFERENCE =  // <JSON>
     "default": "false",
     "labels": ["Data Line display"],
     "type": "boolean",
-    "description": "If set, stack series on top of one another rather than drawing them independently. The first series specified in the input data will wind up on top of the chart and the last will be on bottom. NaN values are drawn as white areas without a line on top, see stackedGraphNaNFill for details."
-  },
-  "stackedGraphNaNFill": {
-    "default": "all",
-    "labels": ["Data Line display"],
-    "type": "string",
-    "description": "Controls handling of NaN values inside a stacked graph. NaN values are interpolated/extended for stacking purposes, but the actual point value remains NaN in the legend display. Valid option values are \"all\" (interpolate internally, repeat leftmost and rightmost value as needed), \"inside\" (interpolate internally only, use zero outside leftmost and rightmost value), and \"none\" (treat NaN as zero everywhere)."
+    "description": "If set, stack series on top of one another rather than drawing them independently."
   },
   "pointSize": {
     "default": "1",
@@ -41,19 +35,13 @@ Dygraph.OPTIONS_REFERENCE =  // <JSON>
     "default": "null",
     "labels": ["Legend"],
     "type": "{}",
-    "description": "Additional styles to apply to the currently-highlighted points div. For example, { 'fontWeight': 'bold' } will make the labels bold. In general, it is better to use CSS to style the .dygraph-legend class than to use this property."
+    "description": "Additional styles to apply to the currently-highlighted points div. For example, { 'font-weight': 'bold' } will make the labels bold."
   },
   "drawPoints": {
     "default": "false",
     "labels": ["Data Line display"],
     "type": "boolean",
     "description": "Draw a small dot at each point, in addition to a line going through the point. This makes the individual data points easier to see, but can increase visual clutter in the chart. The small dot can be replaced with a custom rendering by supplying a <a href='#drawPointCallback'>drawPointCallback</a>."
-  },
-  "drawGapEdgePoints": {
-    "default": "false",
-    "labels": ["Data Line display"],
-    "type": "boolean",
-    "description": "Draw points at the edges of gaps in the data. This improves visibility of small data segments or other data irregularities."
   },
   "drawPointCallback": {
     "default": "null",
@@ -66,8 +54,7 @@ Dygraph.OPTIONS_REFERENCE =  // <JSON>
       [ "cx" , "center x coordinate" ],
       [ "cy" , "center y coordinate" ],
       [ "color" , "series color" ],
-      [ "pointSize" , "the radius of the image." ],
-      [ "idx" , "the row-index of the point in the data."]
+      [ "pointSize" , "the radius of the image." ]
     ],
     "description": "Draw a custom item when drawPoints is enabled. Default is a small dot matching the series color. This method should constrain drawing to within pointSize pixels from (cx, cy).  Also see <a href='#drawHighlightPointCallback'>drawHighlightPointCallback</a>"
   },
@@ -99,19 +86,12 @@ Dygraph.OPTIONS_REFERENCE =  // <JSON>
     ],
     "description": "A function to call when a data point is clicked. and the point that was clicked."
   },
-  "color": {
-    "default": "(see description)",
-    "labels": ["Data Series Colors"],
-    "type": "string",
-    "example": "red",
-    "description": "A per-series color definition. Used in conjunction with, and overrides, the colors option."
-  },
   "colors": {
     "default": "(see description)",
     "labels": ["Data Series Colors"],
     "type": "array<string>",
     "example": "['red', '#00FF00']",
-    "description": "List of colors for the data series. These can be of the form \"#AABBCC\" or \"rgb(255,100,200)\" or \"yellow\", etc. If not specified, equally-spaced points around a color wheel are used. Overridden by the 'color' option."
+    "description": "List of colors for the data series. These can be of the form \"#AABBCC\" or \"rgb(255,100,200)\" or \"yellow\", etc. If not specified, equally-spaced points around a color wheel are used."
   },
   "connectSeparatedPoints": {
     "default": "false",
@@ -143,8 +123,7 @@ Dygraph.OPTIONS_REFERENCE =  // <JSON>
       [ "cx" , "center x coordinate" ],
       [ "cy" , "center y coordinate" ],
       [ "color" , "series color" ],
-      [ "pointSize" , "the radius of the image." ],
-      [ "idx" , "the row-index of the point in the data."]
+      [ "pointSize" , "the radius of the image." ]
     ],
     "description": "Draw a custom item when a point is highlighted.  Default is a small dot matching the series color. This method should constrain drawing to within pointSize pixels from (cx, cy) Also see <a href='#drawPointCallback'>drawPointCallback</a>"
   },
@@ -275,6 +254,12 @@ Dygraph.OPTIONS_REFERENCE =  // <JSON>
     "type": "string",
     "description": "The delimiter to look for when separating fields of a CSV file. Setting this to a tab is not usually necessary, since tab-delimited data is auto-detected."
   },
+  "axisLabelFont": {
+    "default": "Arial",
+    "labels": ["Axis display"],
+    "type": "string",
+    "description": "Font family to use in axis labels, both x- and y-axis."
+  },
   "axisLabelFontSize": {
     "default": "14",
     "labels": ["Axis display"],
@@ -284,10 +269,10 @@ Dygraph.OPTIONS_REFERENCE =  // <JSON>
   "underlayCallback": {
     "default": "null",
     "labels": ["Callbacks"],
-    "type": "function(context, area, dygraph)",
+    "type": "function(canvas, area, dygraph)",
     "parameters": [
-      [ "context" , "the canvas drawing context on which to draw" ],
-      [ "area" , "An object with {x,y,w,h} properties describing the drawing area." ],
+      [ "canvas" , "the canvas to draw on" ],
+      [ "area" , "" ],
       [ "dygraph" , "the reference graph" ]
     ],
     "description": "When set, this callback gets called before the chart is drawn. It details on how to use this."
@@ -361,6 +346,12 @@ Dygraph.OPTIONS_REFERENCE =  // <JSON>
     "example": "<code style='font-size: small'>document.getElementById('foo')</code>or<code>'foo'",
     "description": "Show data labels in an external div, rather than on the graph.  This value can either be a div element or a div id."
   },
+  "labelFollow": {
+    "default": "false",
+    "labels": ["Legend"],
+    "type": "boolean",
+    "description": "Label follows highlighted points"
+  },  
   "fractions": {
     "default": "false",
     "labels": ["CSV parsing", "Error Bars"],
@@ -385,7 +376,7 @@ Dygraph.OPTIONS_REFERENCE =  // <JSON>
     "labels": ["Data Line display"],
     "type": "array<integer>",
     "example": "[10, 2, 5, 2]",
-    "description": "A custom pattern array where the even index is a draw and odd is a space in pixels. If null then it draws a solid line. The array should have a even length as any odd lengthed array could be expressed as a smaller even length array. This is used to create dashed lines."
+    "description": "A custom pattern array where the even index is a draw and odd is a space in pixels. If null then it draws a solid line. The array should have a even length as any odd lengthed array could be expressed as a smaller even length array."
   },
   "strokeBorderWidth": {
     "default": "null",
@@ -411,7 +402,7 @@ Dygraph.OPTIONS_REFERENCE =  // <JSON>
     "default": "false",
     "labels": ["Data Line display"],
     "type": "boolean",
-    "description": "Should the area underneath the graph be filled? This option is not compatible with error bars. This may be set on a <a href='per-axis.html'>per-series</a> basis."
+    "description": "Should the area underneath the graph be filled? This option is not compatible with error bars."
   },
   "highlightCircleSize": {
     "default": "3",
@@ -423,7 +414,7 @@ Dygraph.OPTIONS_REFERENCE =  // <JSON>
     "default": "rgb(128,128,128)",
     "labels": ["Grid"],
     "type": "red, blue",
-    "description": "The color of the gridlines. This may be set on a per-axis basis to define each axis' grid separately."
+    "description": "The color of the gridlines."
   },
   "visibility": {
     "default": "[true, true, ...]",
@@ -436,7 +427,7 @@ Dygraph.OPTIONS_REFERENCE =  // <JSON>
     "labels": ["Axis display"],
     "type": "Array of two numbers",
     "example": "[10, 110]",
-    "description": "Explicitly set the vertical range of the graph to [low, high]. This may be set on a per-axis basis to define each y-axis separately. If either limit is unspecified, it will be calculated automatically (e.g. [null, 30] to automatically calculate just the lower bound)"
+    "description": "Explicitly set the vertical range of the graph to [low, high]. This may be set on a per-axis basis to define each y-axis separately."
   },
   "labelsDivWidth": {
     "default": "250",
@@ -484,7 +475,7 @@ Dygraph.OPTIONS_REFERENCE =  // <JSON>
     "default": "false",
     "labels": ["Data Line display"],
     "type": "boolean",
-    "description": "When set, display the graph as a step plot instead of a line plot. This option may either be set for the whole graph or for single series."
+    "description": "When set, display the graph as a step plot instead of a line plot."
   },
   "labelsKMB": {
     "default": "false",
@@ -500,27 +491,9 @@ Dygraph.OPTIONS_REFERENCE =  // <JSON>
   },
   "avoidMinZero": {
     "default": "false",
-    "labels": ["Deprecated"],
-    "type": "boolean",
-    "description": "Deprecated, please use yRangePad instead. When set, the heuristic that fixes the Y axis at zero for a data set with the minimum Y value of zero is disabled. \nThis is particularly useful for data sets that contain many zero values, especially for step plots which may otherwise have lines not visible running along the bottom axis."
-  },
-  "drawAxesAtZero": {
-    "default": "false",
     "labels": ["Axis display"],
     "type": "boolean",
-    "description": "When set, draw the X axis at the Y=0 position and the Y axis at the X=0 position if those positions are inside the graph's visible area. Otherwise, draw the axes at the bottom or left graph edge as usual."
-  },
-  "xRangePad": {
-    "default": "0",
-    "labels": ["Axis display"],
-    "type": "float",
-    "description": "Add the specified amount of extra space (in pixels) around the X-axis value range to ensure points at the edges remain visible."
-  },
-  "yRangePad": {
-    "default": "null",
-    "labels": ["Axis display"],
-    "type": "float",
-    "description": "If set, add the specified amount of extra space (in pixels) around the Y-axis value range to ensure points at the edges remain visible. If unset, use the traditional Y padding algorithm."
+    "description": "When set, the heuristic that fixes the Y axis at zero for a data set with the minimum Y value of zero is disabled. \nThis is particularly useful for data sets that contain many zero values, especially for step plots which may otherwise have lines not visible running along the bottom axis."
   },
   "xAxisLabelFormatter": {
     "default": "",
@@ -567,7 +540,7 @@ Dygraph.OPTIONS_REFERENCE =  // <JSON>
   "dateWindow": {
     "default": "Full range of the input is shown",
     "labels": ["Axis display"],
-    "type": "Array of two numbers",
+    "type": "Array of two Dates or numbers",
     "example": "[<br>&nbsp;&nbsp;Date.parse('2006-01-01'),<br>&nbsp;&nbsp;(new Date()).valueOf()<br>]",
     "description": "Initially zoom in on a section of the graph. Is of the form [earliest, latest], where earliest/latest are milliseconds since epoch. If the data for the x-axis is numeric, the values in dateWindow must also be numbers."
   },
@@ -663,51 +636,33 @@ Dygraph.OPTIONS_REFERENCE =  // <JSON>
   },
   "drawXGrid": {
     "default": "true",
-    "labels": ["Grid","Deprecated"],
+    "labels": ["Grid"],
     "type": "boolean",
-    "description" : "Use the per-axis option drawGrid instead. Whether to display vertical gridlines under the chart."
+    "description" : "Whether to display vertical gridlines under the chart."
   },
   "drawYGrid": {
     "default": "true",
-    "labels": ["Grid","Deprecated"],
-    "type": "boolean",
-    "description" : "Use the per-axis option drawGrid instead. Whether to display horizontal gridlines under the chart."
-  },
-  "drawGrid": {
-    "default": "true for x and y, false for y2",
     "labels": ["Grid"],
     "type": "boolean",
-    "description" : "Whether to display gridlines in the chart. This may be set on a per-axis basis to define the visibility of each axis' grid separately."
-  },
-  "independentTicks": {
-    "default": "true for y, false for y2",
-    "labels": ["Axis display", "Grid"],
-    "type": "boolean",
-    "description" : "Only valid for y and y2, has no effect on x: This option defines whether the y axes should align their ticks or if they should be independent. Possible combinations: 1.) y=true, y2=false (default): y is the primary axis and the y2 ticks are aligned to the the ones of y. (only 1 grid) 2.) y=false, y2=true: y2 is the primary axis and the y ticks are aligned to the the ones of y2. (only 1 grid) 3.) y=true, y2=true: Both axis are independent and have their own ticks. (2 grids) 4.) y=false, y2=false: Invalid configuration causes an error."
+    "description" : "Whether to display horizontal gridlines under the chart."
   },
   "drawXAxis": {
     "default": "true",
     "labels": ["Axis display"],
     "type": "boolean",
-    "description" : "Deprecated. Use axes : { x : { drawAxis } }."
+    "description" : "Whether to draw the x-axis. Setting this to false also prevents x-axis ticks from being drawn and reclaims the space for the chart grid/lines."
   },
   "drawYAxis": {
     "default": "true",
     "labels": ["Axis display"],
     "type": "boolean",
-    "description" : "Deprecated. Use axes : { y : { drawAxis } }."
-  },
-  "drawAxis": {
-    "default": "true for x and y, false for y2",
-    "labels": ["Axis display"],
-    "type": "boolean",
-    "description" : "Whether to draw the specified axis. This may be set on a per-axis basis to define the visibility of each axis separately. Setting this to false also prevents axis ticks from being drawn and reclaims the space for the chart grid/lines."
+    "description" : "Whether to draw the y-axis. Setting this to false also prevents y-axis ticks from being drawn and reclaims the space for the chart grid/lines."
   },
   "gridLineWidth": {
     "default": "0.3",
     "labels": ["Grid"],
     "type": "float",
-    "description" : "Thickness (in pixels) of the gridlines drawn under the chart. The vertical/horizontal gridlines can be turned off entirely by using the drawXGrid and drawYGrid options. This may be set on a per-axis basis to define each axis' grid separately."
+    "description" : "Thickness (in pixels) of the gridlines drawn under the chart. The vertical/horizontal gridlines can be turned off entirely by using the drawXGrid and drawYGrid options."
   },
   "axisLineWidth": {
     "default": "0.3",
@@ -773,7 +728,7 @@ Dygraph.OPTIONS_REFERENCE =  // <JSON>
     "default": "false",
     "labels": ["Interactive Elements"],
     "type": "boolean",
-    "description": "Show or hide the range selector widget."
+    "description": "Show the range selector widget. This option can only be specified at Dygraph creation time."
   },
   "rangeSelectorHeight": {
     "default": "40",
@@ -793,35 +748,17 @@ Dygraph.OPTIONS_REFERENCE =  // <JSON>
     "type": "string",
     "description": "The range selector mini plot fill color. This can be of the form \"#AABBCC\" or \"rgb(255,100,200)\" or \"yellow\". You can also specify null or \"\" to turn off fill."
   },
+  "verticalCrosshair": {
+    "default": "false",
+    "labels": ["Interactive Elements"],
+    "type": "boolean",
+    "description": "Shows vertical line on highlighted point."
+  },
   "animatedZooms": {
     "default": "false",
     "labels": ["Interactive Elements"],
     "type": "boolean",
     "description": "Set this option to animate the transition between zoom windows. Applies to programmatic and interactive zooms. Note that if you also set a drawCallback, it will be called several times on each zoom. If you set a zoomCallback, it will only be called after the animation is complete."
-  },
-  "plotter": {
-    "default": "[DygraphCanvasRenderer.Plotters.fillPlotter, DygraphCanvasRenderer.Plotters.errorPlotter, DygraphCanvasRenderer.Plotters.linePlotter]",
-    "labels": ["Data Line display"],
-    "type": "array or function",
-    "description": "A function (or array of functions) which plot each data series on the chart. TODO(danvk): more details! May be set per-series."
-  },
-  "series": {
-    "default": "null",
-    "labels": ["Series"],
-    "type": "Object",
-    "description": "Defines per-series options. Its keys match the y-axis label names, and the values are dictionaries themselves that contain options specific to that series. When this option is missing, it falls back on the old-style of per-series options comingled with global options."
-  },
-  "plugins": {
-    "default": "[]",
-    "labels": ["Configuration"],
-    "type": "Array<plugin>",
-    "description": "Defines per-graph plugins. Useful for per-graph customization"
-  },
-  "dataHandler": {
-    "default": "(depends on data)",
-    "labels": ["Data"],
-    "type": "Dygraph.DataHandler",
-    "description": "Custom DataHandler. This is an advanced customization. See http://bit.ly/151E7Aq."
   }
 }
 ;  // </JSON>
@@ -833,7 +770,7 @@ Dygraph.OPTIONS_REFERENCE =  // <JSON>
 // Do a quick sanity check on the options reference.
 (function() {
   "use strict";
-  var warn = function(msg) { if (window.console) window.console.warn(msg); };
+  var warn = function(msg) { if (console) console.warn(msg); };
   var flds = ['type', 'default', 'description'];
   var valid_cats = [
    'Annotations',
@@ -850,11 +787,9 @@ Dygraph.OPTIONS_REFERENCE =  // <JSON>
    'Legend',
    'Overall display',
    'Rolling Averages',
-   'Series',
    'Value display/formatting',
    'Zooming',
    'Debugging',
-   'Configuration',
    'Deprecated'
   ];
   var i;

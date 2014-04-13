@@ -16,32 +16,18 @@
   // This list needs to be kept in sync w/ the one in generate-combined.sh
   // and the one in jsTestDriver.conf.
   var source_files = [
+    "strftime/strftime-min.js",
+    "rgbcolor/rgbcolor.js",
     "stacktrace.js",
-    "dashed-canvas.js",
-    "dygraph-options.js",
     "dygraph-layout.js",
     "dygraph-canvas.js",
     "dygraph.js",
     "dygraph-utils.js",
     "dygraph-gviz.js",
     "dygraph-interaction-model.js",
+    "dygraph-range-selector.js",
     "dygraph-tickers.js",
-    "dygraph-plugin-base.js",
-    "plugins/annotations.js",
-    "plugins/axes.js",
-    "plugins/chart-labels.js",
-    "plugins/grid.js",
-    "plugins/legend.js",
-    "plugins/range-selector.js",
-    "dygraph-plugin-install.js",
-    "dygraph-options-reference.js",  // Shouldn't be included in generate-combined.sh
-    "datahandler/datahandler.js",
-    "datahandler/default.js",
-    "datahandler/default-fractions.js",
-    "datahandler/bars.js",
-    "datahandler/bars-error.js",
-    "datahandler/bars-custom.js",
-    "datahandler/bars-fractions.js"
+    "dygraph-options-reference.js"  // Shouldn't be included in generate-combined.sh
   ];
 
   for (var i = 0; i < source_files.length; i++) {
