@@ -25,27 +25,10 @@
  */
 
 /*jshint globalstrict: true */
-/*global Dygraph:false */
+/*global Dygraph:false,RGBColor:false */
 "use strict";
 
 
-/**
- * @constructor
- *
- * This gets called when there are "new points" to chart. This is generally the
- * case when the underlying data being charted has changed. It is _not_ called
- * in the common case that the user has zoomed or is panning the view.
- *
- * The chart canvas has already been created by the Dygraph object. The
- * renderer simply gets a drawing context.
- *
- * @param {Dygraph} dygraph The chart to which this renderer belongs.
- * @param {HTMLCanvasElement} element The &lt;canvas&gt; DOM element on which to draw.
- * @param {CanvasRenderingContext2D} elementContext The drawing context.
- * @param {DygraphLayout} layout The chart's DygraphLayout object.
- *
- * TODO(danvk): remove the elementContext property.
- */
 var DygraphCanvasRenderer = function(dygraph, element, elementContext, layout) {
   this.dygraph_ = dygraph;
 
@@ -58,11 +41,15 @@ var DygraphCanvasRenderer = function(dygraph, element, elementContext, layout) {
   this.width = this.element.width;
 
   // --- check whether everything is ok before we return
-  // NOTE(konigsberg): isIE is never defined in this object. Bug of some sort.
-  if (!this.isIE && !(Dygraph.isCanvasSupported(this.element)))
+  if (!this.isIE && !(DygraphCanvasRenderer.isSupported(this.element)))
       throw "Canvas is not supported.";
 
   // internal state
+  this.xlabels = [];
+  this.ylabels = [];
+  this.annotations = [];
+  this.chartLabels = {};
+
   this.area = layout.getPlotArea();
   this.container.style.position = "relative";
   this.container.style.width = this.width + "px";
@@ -88,12 +75,10 @@ var DygraphCanvasRenderer = function(dygraph, element, elementContext, layout) {
   }
 };
 
-/**
- * Clears out all chart content and DOM elements.
- * This is called immediately before render() on every frame, including
- * during zooms and pans.
- * @private
- */
+DygraphCanvasRenderer.prototype.attr_ = function(x) {
+  return this.dygraph_.attr_(x);
+};
+
 DygraphCanvasRenderer.prototype.clear = function() {
   var context;
   if (this.isIE) {
@@ -115,21 +100,117 @@ DygraphCanvasRenderer.prototype.clear = function() {
 
   context = this.elementContext;
   context.clearRect(0, 0, this.width, this.height);
+
+  function removeArray(ary) {
+    for (var i = 0; i < ary.length; i++) {
+      var el = ary[i];
+      if (el.parentNode) el.parentNode.removeChild(el);
+    }
+  }
+
+  removeArray(this.xlabels);
+  removeArray(this.ylabels);
+  removeArray(this.annotations);
+
+  for (var k in this.chartLabels) {
+    if (!this.chartLabels.hasOwnProperty(k)) continue;
+    var el = this.chartLabels[k];
+    if (el.parentNode) el.parentNode.removeChild(el);
+  }
+  this.xlabels = [];
+  this.ylabels = [];
+  this.annotations = [];
+  this.chartLabels = {};
+};
+
+
+DygraphCanvasRenderer.isSupported = function(canvasName) {
+  var canvas = null;
+  try {
+    if (typeof(canvasName) == 'undefined' || canvasName === null) {
+      canvas = document.createElement("canvas");
+    } else {
+      canvas = canvasName;
+    }
+    canvas.getContext("2d");
+  }
+  catch (e) {
+    var ie = navigator.appVersion.match(/MSIE (\d\.\d)/);
+    var opera = (navigator.userAgent.toLowerCase().indexOf("opera") != -1);
+    if ((!ie) || (ie[1] < 6) || (opera))
+      return false;
+    return true;
+  }
+  return true;
 };
 
 /**
- * This method is responsible for drawing everything on the chart, including
- * lines, error bars, fills and axes.
- * It is called immediately after clear() on every frame, including during pans
- * and zooms.
- * @private
+ * @param { [String] } colors Array of color strings. Should have one entry for
+ * each series to be rendered.
+ */
+DygraphCanvasRenderer.prototype.setColors = function(colors) {
+  this.colorScheme_ = colors;
+};
+
+/**
+ * Draw an X/Y grid on top of the existing plot
  */
 DygraphCanvasRenderer.prototype.render = function() {
-  // attaches point.canvas{x,y}
-  this._updatePoints();
+  // Draw the new X/Y grid. Lines appear crisper when pixels are rounded to
+  // half-integers. This prevents them from drawing in two rows/cols.
+  var ctx = this.elementContext;
+  function halfUp(x)  { return Math.round(x) + 0.5; }
+  function halfDown(y){ return Math.round(y) - 0.5; }
 
-  // actually draws the chart.
+  if (this.attr_('underlayCallback')) {
+    // NOTE: we pass the dygraph object to this callback twice to avoid breaking
+    // users who expect a deprecated form of this callback.
+    this.attr_('underlayCallback')(ctx, this.area, this.dygraph_, this.dygraph_);
+  }
+
+  var x, y, i, ticks;
+  if (this.attr_('drawYGrid')) {
+    ticks = this.layout.yticks;
+    // TODO(konigsberg): I don't think these calls to save() have a corresponding restore().
+    ctx.save();
+    ctx.strokeStyle = this.attr_('gridLineColor');
+    ctx.lineWidth = this.attr_('gridLineWidth');
+    for (i = 0; i < ticks.length; i++) {
+      // TODO(danvk): allow secondary axes to draw a grid, too.
+      if (ticks[i][0] !== 0) continue;
+      x = halfUp(this.area.x);
+      y = halfDown(this.area.y + ticks[i][1] * this.area.h);
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + this.area.w, y);
+      ctx.closePath();
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  if (this.attr_('drawXGrid')) {
+    ticks = this.layout.xticks;
+    ctx.save();
+    ctx.strokeStyle = this.attr_('gridLineColor');
+    ctx.lineWidth = this.attr_('gridLineWidth');
+    for (i=0; i<ticks.length; i++) {
+      x = halfUp(this.area.x + ticks[i][0] * this.area.w);
+      y = halfDown(this.area.y + this.area.h);
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x, this.area.y);
+      ctx.closePath();
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // Do the ordinary rendering, as before
   this._renderLineChart();
+  this._renderAxis();
+  this._renderChartLabels();
+  this._renderAnnotations();
 };
 
 DygraphCanvasRenderer.prototype._createIEClipArea = function() {
@@ -201,588 +282,814 @@ DygraphCanvasRenderer.prototype._createIEClipArea = function() {
   });
 };
 
+DygraphCanvasRenderer.prototype._renderAxis = function() {
+  if (!this.attr_('drawXAxis') && !this.attr_('drawYAxis')) return;
 
-/**
- * Returns a predicate to be used with an iterator, which will
- * iterate over points appropriately, depending on whether
- * connectSeparatedPoints is true. When it's false, the predicate will
- * skip over points with missing yVals.
- */
-DygraphCanvasRenderer._getIteratorPredicate = function(connectSeparatedPoints) {
-  return connectSeparatedPoints ?
-      DygraphCanvasRenderer._predicateThatSkipsEmptyPoints :
-      null;
+  // Round pixels to half-integer boundaries for crisper drawing.
+  function halfUp(x)  { return Math.round(x) + 0.5; }
+  function halfDown(y){ return Math.round(y) - 0.5; }
+
+  var context = this.elementContext;
+
+  var labelContainer, label, x, y, tick, i;
+
+  var labelStyle = {
+    position: "absolute",
+    fontSize: this.attr_('axisLabelFontSize') + "px",
+  fontFamily: this.attr_('axisLabelFont'),
+	fontWeight: "bold",
+    zIndex: 10,
+    color: this.attr_('axisLabelColor'),
+    width: this.attr_('axisLabelWidth') + "px",
+    // height: this.attr_('axisLabelFontSize') + 2 + "px",
+    lineHeight: "normal",  // Something other than "normal" line-height screws up label positioning.
+   // overflow: "hidden"
+    overflow: ""
+  };
+  var makeDiv = function(txt, axis, prec_axis) {
+    var div = document.createElement("div");
+    for (var name in labelStyle) {
+      if (labelStyle.hasOwnProperty(name)) {
+        div.style[name] = labelStyle[name];		
+      }	  
+    }
+    var inner_span = document.createElement("span");
+    inner_span.className = 'dygraph-axis-label' +
+                          ' dygraph-axis-label-' + axis +
+                          (prec_axis ? ' dygraph-axis-label-' + prec_axis : '');
+    inner_span.innerHTML=txt;	
+	
+	if(axis == 'y' && labelStyle.color != 'rgba(255,255,255,0)'){
+		inner_span.style.fontWeight 		= 'normal';
+		inner_span.style.fontSize 			= '9px';
+		inner_span.style.backgroundColor 	= '#EAF8FA';
+		inner_span.style.padding 			= '3px 7px';
+		inner_span.style.borderRadius 		= '10px';
+	 }
+	 
+	 if(labelStyle.color == 'rgba(255,255,255,0)'){
+		inner_span.style.backgroundColor 	= labelStyle.color;
+	 }
+	
+	
+    div.appendChild(inner_span);
+	
+    return div;
+  };
+
+  // axis lines
+  context.save();
+  context.strokeStyle = this.attr_('axisLineColor');
+  context.lineWidth = this.attr_('axisLineWidth');
+
+  if (this.attr_('drawYAxis')) {
+    if (this.layout.yticks && this.layout.yticks.length > 0) {
+      var num_axes = this.dygraph_.numAxes();
+      for (i = 0; i < this.layout.yticks.length; i++) {
+        tick = this.layout.yticks[i];
+        if (typeof(tick) == "function") return;
+        x = this.area.x;
+        var sgn = 1;
+        var prec_axis = 'y1';
+        if (tick[0] == 1) {  // right-side y-axis
+          x = this.area.x + this.area.w;
+          sgn = -1;
+          prec_axis = 'y2';
+        }
+        y = this.area.y + tick[1] * this.area.h;
+
+        /* Tick marks are currently clipped, so don't bother drawing them.
+        context.beginPath();
+        context.moveTo(halfUp(x), halfDown(y));
+        context.lineTo(halfUp(x - sgn * this.attr_('axisTickSize')), halfDown(y));
+        context.closePath();
+        context.stroke();
+        */
+
+        label = makeDiv(tick[2], 'y', num_axes == 2 ? prec_axis : null);
+        var top = (y - this.attr_('axisLabelFontSize') / 2)-5;
+        if (top < 0) top = 0;
+
+        if (top + this.attr_('axisLabelFontSize') + 3 > this.height) {
+          label.style.bottom = "0px";
+        } else {
+          label.style.top = top + "px";
+        }
+        if (tick[0] === 0) {
+          label.style.left = (this.area.x - this.attr_('yAxisLabelWidth') - this.attr_('axisTickSize')) + "px";
+          label.style.textAlign = "right";
+        } else if (tick[0] == 1) {
+          label.style.left = (this.area.x + this.area.w +
+                              this.attr_('axisTickSize')) + "px";
+          label.style.textAlign = "left";		  
+        }
+        label.style.width = this.attr_('yAxisLabelWidth') + "px";	
+		
+		if(labelStyle.color != 'rgba(255,255,255,0)'){
+			 label.style.backgroundColor	= '';
+		}
+		
+        this.container.appendChild(label);
+        this.ylabels.push(label);
+      }
+
+      // The lowest tick on the y-axis often overlaps with the leftmost
+      // tick on the x-axis. Shift the bottom tick up a little bit to
+      // compensate if necessary.
+      var bottomTick = this.ylabels[0];
+      var fontSize = this.attr_('axisLabelFontSize');
+      var bottom = parseInt(bottomTick.style.top, 10) + fontSize;
+      if (bottom > this.height - fontSize) {
+        bottomTick.style.top = (parseInt(bottomTick.style.top, 10) -
+            fontSize / 2) + "px";
+      }
+    }
+
+    // draw a vertical line on the left to separate the chart from the labels.
+    context.beginPath();
+    context.moveTo(halfUp(this.area.x), halfDown(this.area.y));
+    context.lineTo(halfUp(this.area.x), halfDown(this.area.y + this.area.h));
+    context.closePath();
+    context.stroke();
+
+    // if there's a secondary y-axis, draw a vertical line for that, too.
+    if (this.dygraph_.numAxes() == 2) {
+      context.beginPath();
+      context.moveTo(halfDown(this.area.x + this.area.w), halfDown(this.area.y));
+      context.lineTo(halfDown(this.area.x + this.area.w), halfDown(this.area.y + this.area.h));
+      context.closePath();
+      context.stroke();
+    }
+  }
+
+  if (this.attr_('drawXAxis')) {
+    if (this.layout.xticks) {
+	  y = this.area.y + this.area.h;
+	  
+	  labelContainer = makeDiv('', 'xx');
+	  
+      for (i = 0; i < this.layout.xticks.length; i++) {
+        tick = this.layout.xticks[i];
+        x = this.area.x + tick[0] * this.area.w;
+        y = this.area.y + this.area.h;
+
+        /* Tick marks are currently clipped, so don't bother drawing them.
+        context.beginPath();
+        context.moveTo(halfUp(x), halfDown(y));
+        context.lineTo(halfUp(x), halfDown(y + this.attr_('axisTickSize')));
+        context.closePath();
+        context.stroke();
+        */
+
+        label = makeDiv(tick[1], 'x');
+        label.style.textAlign = "center";
+        label.style.top = '3px';
+
+        var left = (x - this.attr_('axisLabelWidth')/2);
+        if (left + this.attr_('axisLabelWidth') > this.width) {
+          left = this.width - this.attr_('xAxisLabelWidth');
+          label.style.textAlign = "right";
+        }
+        if (left < 0) {
+          left = 0;
+          label.style.textAlign = "left";
+        }
+
+        label.style.left = left + "px";
+        label.style.width = this.attr_('xAxisLabelWidth') + "px";
+		labelContainer.appendChild(label);
+      //  this.container.appendChild(label);
+        this.xlabels.push(label);
+      }
+	  
+	  labelContainer.style.top 				= (y + this.attr_('axisTickSize')-5) + 'px';
+	  labelContainer.style.left 			= '0px';
+	  labelContainer.style.width 			= this.width+'px';
+	  labelContainer.style.height 			= '15px';
+	  labelContainer.style.paddingBottom	= '3px';
+	  labelContainer.style.paddingTop		= '3px';
+
+	  if(labelStyle.color == "rgba(255,255,255,0)"){
+	  }else{
+	  labelContainer.style.backgroundColor 	= '#EAF8FA';
+	  }
+	  
+	  this.container.appendChild(labelContainer);
+    }
+
+    context.beginPath();
+    context.moveTo(halfUp(this.area.x), halfDown(this.area.y + this.area.h));
+    context.lineTo(halfUp(this.area.x + this.area.w), halfDown(this.area.y + this.area.h));
+    context.closePath();
+    context.stroke();
+  }
+
+  context.restore();
 };
 
-DygraphCanvasRenderer._predicateThatSkipsEmptyPoints =
-    function(array, idx) {
-  return array[idx].yval !== null;
+
+DygraphCanvasRenderer.prototype._renderChartLabels = function() {
+  var div, class_div;
+
+  // Generate divs for the chart title, xlabel and ylabel.
+  // Space for these divs has already been taken away from the charting area in
+  // the DygraphCanvasRenderer constructor.
+  if (this.attr_('title')) {
+    div = document.createElement("div");
+    div.style.position = 'absolute';
+    div.style.top = '0px';
+    div.style.left = this.area.x + 'px';
+    div.style.width = this.area.w + 'px';
+    div.style.height = this.attr_('titleHeight') + 'px';
+    div.style.textAlign = 'center';
+    div.style.fontSize = (this.attr_('titleHeight') - 8) + 'px';
+    div.style.fontWeight = 'bold';
+    class_div = document.createElement("div");
+    class_div.className = 'dygraph-label dygraph-title';
+    class_div.innerHTML = this.attr_('title');
+    div.appendChild(class_div);
+    this.container.appendChild(div);
+    this.chartLabels.title = div;
+  }
+
+  if (this.attr_('xlabel')) {
+    div = document.createElement("div");
+    div.style.position = 'absolute';
+    div.style.bottom = 0;  // TODO(danvk): this is lazy. Calculate style.top.
+    div.style.left = this.area.x + 'px';
+    div.style.width = this.area.w + 'px';
+    div.style.height = this.attr_('xLabelHeight') + 'px';
+    div.style.textAlign = 'center';
+    div.style.fontSize = (this.attr_('xLabelHeight') - 2) + 'px';
+
+    class_div = document.createElement("div");
+    class_div.className = 'dygraph-label dygraph-xlabel';
+    class_div.innerHTML = this.attr_('xlabel');
+    div.appendChild(class_div);
+    this.container.appendChild(div);
+    this.chartLabels.xlabel = div;
+  }
+
+  var that = this;
+  function createRotatedDiv(axis, classes, html) {
+    var box = {
+      left: 0,
+      top: that.area.y,
+      width: that.attr_('yLabelWidth'),
+      height: that.area.h
+    };
+    // TODO(danvk): is this outer div actually necessary?
+    div = document.createElement("div");
+    div.style.position = 'absolute';
+    if (axis == 1) {
+      div.style.left = box.left;
+    } else {
+      div.style.right = box.left;
+    }
+    div.style.top = box.top + 'px';
+    div.style.width = box.width + 'px';
+    div.style.height = box.height + 'px';
+    div.style.fontSize = (that.attr_('yLabelWidth') - 2) + 'px';
+
+    var inner_div = document.createElement("div");
+    inner_div.style.position = 'absolute';
+    inner_div.style.width = box.height + 'px';
+    inner_div.style.height = box.width + 'px';
+    inner_div.style.top = (box.height / 2 - box.width / 2) + 'px';
+    inner_div.style.left = (box.width / 2 - box.height / 2) + 'px';
+    inner_div.style.textAlign = 'center';
+
+    // CSS rotation is an HTML5 feature which is not standardized. Hence every
+    // browser has its own name for the CSS style.
+    var val = 'rotate(' + (axis == 1 ? '-' : '') + '90deg)';
+    inner_div.style.transform = val;        // HTML5
+    inner_div.style.WebkitTransform = val;  // Safari/Chrome
+    inner_div.style.MozTransform = val;     // Firefox
+    inner_div.style.OTransform = val;       // Opera
+    inner_div.style.msTransform = val;      // IE9
+
+    if (typeof(document.documentMode) !== 'undefined' &&
+        document.documentMode < 9) {
+      // We're dealing w/ an old version of IE, so we have to rotate the text
+      // using a BasicImage transform. This uses a different origin of rotation
+      // than HTML5 rotation (top left of div vs. its center).
+      inner_div.style.filter =
+          'progid:DXImageTransform.Microsoft.BasicImage(rotation=' +
+          (axis == 1 ? '3' : '1') + ')';
+      inner_div.style.left = '0px';
+      inner_div.style.top = '0px';
+    }
+
+    class_div = document.createElement("div");
+    class_div.className = classes;
+    class_div.innerHTML = html;
+
+    inner_div.appendChild(class_div);
+    div.appendChild(inner_div);
+    return div;
+  }
+
+  var div;
+  if (this.attr_('ylabel')) {
+    div = createRotatedDiv(1, 'dygraph-label dygraph-ylabel',
+                           this.attr_('ylabel'));
+    this.container.appendChild(div);
+    this.chartLabels.ylabel = div;
+  }
+  if (this.attr_('y2label') && this.dygraph_.numAxes() == 2) {
+    div = createRotatedDiv(2, 'dygraph-label dygraph-y2label',
+                           this.attr_('y2label'));
+    this.container.appendChild(div);
+    this.chartLabels.y2label = div;
+  }
 };
 
-/**
- * Draws a line with the styles passed in and calls all the drawPointCallbacks.
- * @param {Object} e The dictionary passed to the plotter function.
- * @private
- */
-DygraphCanvasRenderer._drawStyledLine = function(e,
-    color, strokeWidth, strokePattern, drawPoints,
+
+DygraphCanvasRenderer.prototype._renderAnnotations = function() {
+  var annotationStyle = {
+    "position": "absolute",
+    "fontSize": this.attr_('axisLabelFontSize') + "px",
+    "zIndex": 10,
+    "overflow": "hidden"
+  };
+
+  var bindEvt = function(eventName, classEventName, p, self) {
+    return function(e) {
+      var a = p.annotation;
+      if (a.hasOwnProperty(eventName)) {
+        a[eventName](a, p, self.dygraph_, e);
+      } else if (self.dygraph_.attr_(classEventName)) {
+        self.dygraph_.attr_(classEventName)(a, p, self.dygraph_,e );
+      }
+    };
+  };
+
+  // Get a list of point with annotations.
+  var points = this.layout.annotated_points;
+  for (var i = 0; i < points.length; i++) {
+    var p = points[i];
+    if (p.canvasx < this.area.x || p.canvasx > this.area.x + this.area.w ||
+        p.canvasy < this.area.y || p.canvasy > this.area.y + this.area.h) {
+      continue;
+    }
+
+    var a = p.annotation;
+    var tick_height = 6;
+    if (a.hasOwnProperty("tickHeight")) {
+      tick_height = a.tickHeight;
+    }
+
+    var div = document.createElement("div");
+    for (var name in annotationStyle) {
+      if (annotationStyle.hasOwnProperty(name)) {
+        div.style[name] = annotationStyle[name];
+      }
+    }
+    if (!a.hasOwnProperty('icon')) {
+      div.className = "dygraphDefaultAnnotation";
+    }
+    if (a.hasOwnProperty('cssClass')) {
+      div.className += " " + a.cssClass;
+    }
+
+    var width = a.hasOwnProperty('width') ? a.width : 16;
+    var height = a.hasOwnProperty('height') ? a.height : 16;
+    if (a.hasOwnProperty('icon')) {
+      var img = document.createElement("img");
+      img.src = a.icon;
+      img.width = width;
+      img.height = height;
+      div.appendChild(img);
+    } else if (p.annotation.hasOwnProperty('shortText')) {
+      div.appendChild(document.createTextNode(p.annotation.shortText));
+    }
+    div.style.left = (p.canvasx - width / 2) + "px";
+    if (a.attachAtBottom) {
+      div.style.top = (this.area.h - height - tick_height) + "px";
+    } else {
+      div.style.top = (p.canvasy - height - tick_height) + "px";
+    }
+    div.style.width = width + "px";
+    div.style.height = height + "px";
+    div.title = p.annotation.text;
+    div.style.color = this.colors[p.name];
+    div.style.borderColor = this.colors[p.name];
+    a.div = div;
+
+    Dygraph.addEvent(div, 'click',
+        bindEvt('clickHandler', 'annotationClickHandler', p, this));
+    Dygraph.addEvent(div, 'mouseover',
+        bindEvt('mouseOverHandler', 'annotationMouseOverHandler', p, this));
+    Dygraph.addEvent(div, 'mouseout',
+        bindEvt('mouseOutHandler', 'annotationMouseOutHandler', p, this));
+    Dygraph.addEvent(div, 'dblclick',
+        bindEvt('dblClickHandler', 'annotationDblClickHandler', p, this));
+
+    this.container.appendChild(div);
+    this.annotations.push(div);
+
+    var ctx = this.elementContext;
+    ctx.strokeStyle = this.colors[p.name];
+    ctx.beginPath();
+    if (!a.attachAtBottom) {
+      ctx.moveTo(p.canvasx, p.canvasy);
+      ctx.lineTo(p.canvasx, p.canvasy - 2 - tick_height);
+    } else {
+      ctx.moveTo(p.canvasx, this.area.h);
+      ctx.lineTo(p.canvasx, this.area.h - 2 - tick_height);
+    }
+    ctx.closePath();
+    ctx.stroke();
+  }
+};
+
+DygraphCanvasRenderer.makeNextPointStep_ = function(connect, points, end) {
+  if (connect) {
+    return function(j) {
+      while (++j < end) {
+        if (!(points[j].yval === null)) break;
+      }
+      return j;
+    }
+  } else {
+    return function(j) { return j + 1 };
+  }
+};
+
+DygraphCanvasRenderer.prototype._drawStyledLine = function(
+    ctx, i, setName, color, strokeWidth, strokePattern, drawPoints,
     drawPointCallback, pointSize) {
-  var g = e.dygraph;
-  // TODO(konigsberg): Compute attributes outside this method call.
-  var stepPlot = g.getBooleanOption("stepPlot", e.setName);
+  var isNullOrNaN = function(x) {
+    return (x === null || isNaN(x));
+  };
 
+
+  var stepPlot = this.attr_("stepPlot");
+  var firstIndexInSet = this.layout.setPointsOffsets[i];
+  var setLength = this.layout.setPointsLengths[i];
+  var afterLastIndexInSet = firstIndexInSet + setLength;
+  var points = this.layout.points;
+  var prevX = null;
+  var prevY = null;
+  var pointsOnLine = []; // Array of [canvasx, canvasy] pairs.
   if (!Dygraph.isArrayLike(strokePattern)) {
     strokePattern = null;
   }
 
-  var drawGapPoints = g.getBooleanOption('drawGapEdgePoints', e.setName);
-
-  var points = e.points;
-  var setName = e.setName;
-  var iter = Dygraph.createIterator(points, 0, points.length,
-      DygraphCanvasRenderer._getIteratorPredicate(
-          g.getBooleanOption("connectSeparatedPoints", setName)));
-
-  var stroking = strokePattern && (strokePattern.length >= 2);
-
-  var ctx = e.drawingContext;
+  var point;
+  var next = DygraphCanvasRenderer.makeNextPointStep_(
+      this.attr_('connectSeparatedPoints'), points, afterLastIndexInSet);
   ctx.save();
-  if (stroking) {
-    ctx.installPattern(strokePattern);
-  }
-
-  var pointsOnLine = DygraphCanvasRenderer._drawSeries(
-      e, iter, strokeWidth, pointSize, drawPoints, drawGapPoints, stepPlot, color);
-  DygraphCanvasRenderer._drawPointsOnLine(
-      e, pointsOnLine, drawPointCallback, color, pointSize);
-
-  if (stroking) {
-    ctx.uninstallPattern();
-  }
-
-  ctx.restore();
-};
-
-/**
- * This does the actual drawing of lines on the canvas, for just one series.
- * Returns a list of [canvasx, canvasy] pairs for points for which a
- * drawPointCallback should be fired.  These include isolated points, or all
- * points if drawPoints=true.
- * @param {Object} e The dictionary passed to the plotter function.
- * @private
- */
-DygraphCanvasRenderer._drawSeries = function(e,
-    iter, strokeWidth, pointSize, drawPoints, drawGapPoints, stepPlot, color) {
-
-  var prevCanvasX = null;
-  var prevCanvasY = null;
-  var nextCanvasY = null;
-  var isIsolated; // true if this point is isolated (no line segments)
-  var point; // the point being processed in the while loop
-  var pointsOnLine = []; // Array of [canvasx, canvasy] pairs.
-  var first = true; // the first cycle through the while loop
-
-  var ctx = e.drawingContext;
-  ctx.beginPath();
-  ctx.strokeStyle = color;
-  ctx.lineWidth = strokeWidth;
-
-  // NOTE: we break the iterator's encapsulation here for about a 25% speedup.
-  var arr = iter.array_;
-  var limit = iter.end_;
-  var predicate = iter.predicate_;
-
-  for (var i = iter.start_; i < limit; i++) {
-    point = arr[i];
-    if (predicate) {
-      while (i < limit && !predicate(arr, i)) {
-        i++;
-      }
-      if (i == limit) break;
-      point = arr[i];
-    }
-
-    // FIXME: The 'canvasy != canvasy' test here catches NaN values but the test
-    // doesn't catch Infinity values. Could change this to
-    // !isFinite(point.canvasy), but I assume it avoids isNaN for performance?
-    if (point.canvasy === null || point.canvasy != point.canvasy) {
-      if (stepPlot && prevCanvasX !== null) {
+  for (var j = firstIndexInSet; j < afterLastIndexInSet; j = next(j)) {
+    point = points[j];
+    if (isNullOrNaN(point.canvasy)) {
+      if (stepPlot && prevX !== null) {
         // Draw a horizontal line to the start of the missing data
-        ctx.moveTo(prevCanvasX, prevCanvasY);
-        ctx.lineTo(point.canvasx, prevCanvasY);
+        ctx.beginPath();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = this.attr_('strokeWidth');
+        this._dashedLine(ctx, prevX, prevY, point.canvasx, prevY, strokePattern);
+        ctx.stroke();
       }
-      prevCanvasX = prevCanvasY = null;
+      // this will make us move to the next point, not draw a line to it.
+      prevX = prevY = null;
     } else {
-      isIsolated = false;
-      if (drawGapPoints || !prevCanvasX) {
-        iter.nextIdx_ = i;
-        iter.next();
-        nextCanvasY = iter.hasNext ? iter.peek.canvasy : null;
-
-        var isNextCanvasYNullOrNaN = nextCanvasY === null ||
-            nextCanvasY != nextCanvasY;
-        isIsolated = (!prevCanvasX && isNextCanvasYNullOrNaN);
-        if (drawGapPoints) {
-          // Also consider a point to be "isolated" if it's adjacent to a
-          // null point, excluding the graph edges.
-          if ((!first && !prevCanvasX) ||
-              (iter.hasNext && isNextCanvasYNullOrNaN)) {
-            isIsolated = true;
-          }
-        }
-      }
-
-      if (prevCanvasX !== null) {
-        if (strokeWidth) {
-          if (stepPlot) {
-            ctx.moveTo(prevCanvasX, prevCanvasY);
-            ctx.lineTo(point.canvasx, prevCanvasY);
-          }
-
-          ctx.lineTo(point.canvasx, point.canvasy);
-        }
+      // A point is "isolated" if it is non-null but both the previous
+      // and next points are null.
+      var isIsolated = (!prevX && (j == points.length - 1 ||
+                                   isNullOrNaN(points[j+1].canvasy)));
+      if (prevX === null) {
+        prevX = point.canvasx;
+        prevY = point.canvasy;
       } else {
-        ctx.moveTo(point.canvasx, point.canvasy);
+        // Skip over points that will be drawn in the same pixel.
+        if (Math.round(prevX) == Math.round(point.canvasx) &&
+            Math.round(prevY) == Math.round(point.canvasy)) {
+          continue;
+        }
+        // TODO(antrob): skip over points that lie on a line that is already
+        // going to be drawn. There is no need to have more than 2
+        // consecutive points that are collinear.
+        if (strokeWidth) {
+          ctx.beginPath();
+          ctx.strokeStyle = color;
+          ctx.lineWidth = strokeWidth;
+          if (stepPlot) {
+            this._dashedLine(ctx, prevX, prevY, point.canvasx, prevY, strokePattern);
+            prevX = point.canvasx;
+          }
+          this._dashedLine(ctx, prevX, prevY, point.canvasx, point.canvasy, strokePattern);
+          prevX = point.canvasx;
+          prevY = point.canvasy;
+          ctx.stroke();
+        }
       }
-      if (drawPoints || isIsolated) {
-        pointsOnLine.push([point.canvasx, point.canvasy, point.idx]);
-      }
-      prevCanvasX = point.canvasx;
-      prevCanvasY = point.canvasy;
-    }
-    first = false;
-  }
-  ctx.stroke();
-  return pointsOnLine;
-};
 
-/**
- * This fires the drawPointCallback functions, which draw dots on the points by
- * default. This gets used when the "drawPoints" option is set, or when there
- * are isolated points.
- * @param {Object} e The dictionary passed to the plotter function.
- * @private
- */
-DygraphCanvasRenderer._drawPointsOnLine = function(
-    e, pointsOnLine, drawPointCallback, color, pointSize) {
-  var ctx = e.drawingContext;
+      if (drawPoints || isIsolated) {
+        pointsOnLine.push([point.canvasx, point.canvasy]);
+      }
+    }
+  }
   for (var idx = 0; idx < pointsOnLine.length; idx++) {
     var cb = pointsOnLine[idx];
     ctx.save();
     drawPointCallback(
-        e.dygraph, e.setName, ctx, cb[0], cb[1], color, pointSize, cb[2]);
+        this.dygraph_, setName, ctx, cb[0], cb[1], color, pointSize);
     ctx.restore();
   }
+  ctx.restore();
+};
+
+DygraphCanvasRenderer.prototype._drawLine = function(ctx, i) {
+  var setNames = this.layout.setNames;
+  var setName = setNames[i];
+
+  var strokeWidth = this.dygraph_.attr_("strokeWidth", setName);
+  var borderWidth = this.dygraph_.attr_("strokeBorderWidth", setName);
+  var drawPointCallback = this.dygraph_.attr_("drawPointCallback", setName) ||
+      Dygraph.Circles.DEFAULT;
+  if (borderWidth && strokeWidth) {
+    this._drawStyledLine(ctx, i, setName,
+        this.dygraph_.attr_("strokeBorderColor", setName),
+        strokeWidth + 2 * borderWidth,
+        this.dygraph_.attr_("strokePattern", setName),
+        this.dygraph_.attr_("drawPoints", setName),
+        drawPointCallback,
+        this.dygraph_.attr_("pointSize", setName));
+  }
+
+  this._drawStyledLine(ctx, i, setName,
+      this.colors[setName],
+      strokeWidth,
+      this.dygraph_.attr_("strokePattern", setName),
+      this.dygraph_.attr_("drawPoints", setName),
+      drawPointCallback,
+      this.dygraph_.attr_("pointSize", setName));
 };
 
 /**
- * Attaches canvas coordinates to the points array.
+ * Actually draw the lines chart, including error bars.
+ * TODO(danvk): split this into several smaller functions.
  * @private
  */
-DygraphCanvasRenderer.prototype._updatePoints = function() {
+DygraphCanvasRenderer.prototype._renderLineChart = function() {
+  // TODO(danvk): use this.attr_ for many of these.
+  var ctx = this.elementContext;
+  var fillAlpha = this.attr_('fillAlpha');
+  var errorBars = this.attr_("errorBars") || this.attr_("customBars");
+  var fillGraph = this.attr_("fillGraph");
+  var stackedGraph = this.attr_("stackedGraph");
+  var stepPlot = this.attr_("stepPlot");
+  var points = this.layout.points;
+  var pointsLength = points.length;
+  var point, i, j, prevX, prevY, prevYs, color, setName, newYs, err_color, rgb, yscale, axis;
+
+  var setNames = this.layout.setNames;
+  var setCount = setNames.length;
+
+  // TODO(danvk): Move this mapping into Dygraph and get it out of here.
+  this.colors = {};
+  for (i = 0; i < setCount; i++) {
+    this.colors[setNames[i]] = this.colorScheme_[i % this.colorScheme_.length];
+  }
+
   // Update Points
   // TODO(danvk): here
-  //
-  // TODO(bhs): this loop is a hot-spot for high-point-count charts. These
-  // transformations can be pushed into the canvas via linear transformation
-  // matrices.
-  // NOTE(danvk): this is trickier than it sounds at first. The transformation
-  // needs to be done before the .moveTo() and .lineTo() calls, but must be
-  // undone before the .stroke() call to ensure that the stroke width is
-  // unaffected.  An alternative is to reduce the stroke width in the
-  // transformed coordinate space, but you can't specify different values for
-  // each dimension (as you can with .scale()). The speedup here is ~12%.
-  var sets = this.layout.points;
-  for (var i = sets.length; i--;) {
-    var points = sets[i];
-    for (var j = points.length; j--;) {
-      var point = points[j];
-      point.canvasx = this.area.w * point.x + this.area.x;
-      point.canvasy = this.area.h * point.y + this.area.y;
+  for (i = pointsLength; i--;) {
+    point = points[i];
+    point.canvasx = this.area.w * point.x + this.area.x;
+    point.canvasy = this.area.h * point.y + this.area.y;
+  }
+
+  // create paths
+  if (errorBars) {
+    ctx.save();
+    if (fillGraph) {
+      this.dygraph_.warn("Can't use fillGraph option with error bars");
     }
-  }
-};
 
-/**
- * Add canvas Actually draw the lines chart, including error bars.
- *
- * This function can only be called if DygraphLayout's points array has been
- * updated with canvas{x,y} attributes, i.e. by
- * DygraphCanvasRenderer._updatePoints.
- *
- * @param {string=} opt_seriesName when specified, only that series will
- *     be drawn. (This is used for expedited redrawing with highlightSeriesOpts)
- * @param {CanvasRenderingContext2D} opt_ctx when specified, the drawing
- *     context.  However, lines are typically drawn on the object's
- *     elementContext.
- * @private
- */
-DygraphCanvasRenderer.prototype._renderLineChart = function(opt_seriesName, opt_ctx) {
-  var ctx = opt_ctx || this.elementContext;
-  var i;
+    for (i = 0; i < setCount; i++) {
+      setName = setNames[i];
+      axis = this.dygraph_.axisPropertiesForSeries(setName);
+      color = this.colors[setName];
 
-  var sets = this.layout.points;
-  var setNames = this.layout.setNames;
-  var setName;
+      var firstIndexInSet = this.layout.setPointsOffsets[i];
+      var setLength = this.layout.setPointsLengths[i];
+      var afterLastIndexInSet = firstIndexInSet + setLength;
 
-  this.colors = this.dygraph_.colorsMap_;
+      var next = DygraphCanvasRenderer.makeNextPointStep_(
+        this.attr_('connectSeparatedPoints'), points,
+        afterLastIndexInSet);
 
-  // Determine which series have specialized plotters.
-  var plotter_attr = this.dygraph_.getOption("plotter");
-  var plotters = plotter_attr;
-  if (!Dygraph.isArrayLike(plotters)) {
-    plotters = [plotters];
-  }
-
-  var setPlotters = {};  // series name -> plotter fn.
-  for (i = 0; i < setNames.length; i++) {
-    setName = setNames[i];
-    var setPlotter = this.dygraph_.getOption("plotter", setName);
-    if (setPlotter == plotter_attr) continue;  // not specialized.
-
-    setPlotters[setName] = setPlotter;
-  }
-
-  for (i = 0; i < plotters.length; i++) {
-    var plotter = plotters[i];
-    var is_last = (i == plotters.length - 1);
-
-    for (var j = 0; j < sets.length; j++) {
-      setName = setNames[j];
-      if (opt_seriesName && setName != opt_seriesName) continue;
-
-      var points = sets[j];
-
-      // Only throw in the specialized plotters on the last iteration.
-      var p = plotter;
-      if (setName in setPlotters) {
-        if (is_last) {
-          p = setPlotters[setName];
-        } else {
-          // Don't use the standard plotters in this case.
-          continue;
-        }
-      }
-
-      var color = this.colors[setName];
-      var strokeWidth = this.dygraph_.getOption("strokeWidth", setName);
-
-      ctx.save();
-      ctx.strokeStyle = color;
-      ctx.lineWidth = strokeWidth;
-      p({
-        points: points,
-        setName: setName,
-        drawingContext: ctx,
-        color: color,
-        strokeWidth: strokeWidth,
-        dygraph: this.dygraph_,
-        axis: this.dygraph_.axisPropertiesForSeries(setName),
-        plotArea: this.area,
-        seriesIndex: j,
-        seriesCount: sets.length,
-        singleSeriesName: opt_seriesName,
-        allSeriesPoints: sets
-      });
-      ctx.restore();
-    }
-  }
-};
-
-/**
- * Standard plotters. These may be used by clients via Dygraph.Plotters.
- * See comments there for more details.
- */
-DygraphCanvasRenderer._Plotters = {
-  linePlotter: function(e) {
-    DygraphCanvasRenderer._linePlotter(e);
-  },
-
-  fillPlotter: function(e) {
-    DygraphCanvasRenderer._fillPlotter(e);
-  },
-
-  errorPlotter: function(e) {
-    DygraphCanvasRenderer._errorPlotter(e);
-  }
-};
-
-/**
- * Plotter which draws the central lines for a series.
- * @private
- */
-DygraphCanvasRenderer._linePlotter = function(e) {
-  var g = e.dygraph;
-  var setName = e.setName;
-  var strokeWidth = e.strokeWidth;
-
-  // TODO(danvk): Check if there's any performance impact of just calling
-  // getOption() inside of _drawStyledLine. Passing in so many parameters makes
-  // this code a bit nasty.
-  var borderWidth = g.getNumericOption("strokeBorderWidth", setName);
-  var drawPointCallback = g.getOption("drawPointCallback", setName) ||
-      Dygraph.Circles.DEFAULT;
-  var strokePattern = g.getOption("strokePattern", setName);
-  var drawPoints = g.getBooleanOption("drawPoints", setName);
-  var pointSize = g.getNumericOption("pointSize", setName);
-
-  if (borderWidth && strokeWidth) {
-    DygraphCanvasRenderer._drawStyledLine(e,
-        g.getOption("strokeBorderColor", setName),
-        strokeWidth + 2 * borderWidth,
-        strokePattern,
-        drawPoints,
-        drawPointCallback,
-        pointSize
-        );
-  }
-
-  DygraphCanvasRenderer._drawStyledLine(e,
-      e.color,
-      strokeWidth,
-      strokePattern,
-      drawPoints,
-      drawPointCallback,
-      pointSize
-  );
-};
-
-/**
- * Draws the shaded error bars/confidence intervals for each series.
- * This happens before the center lines are drawn, since the center lines
- * need to be drawn on top of the error bars for all series.
- * @private
- */
-DygraphCanvasRenderer._errorPlotter = function(e) {
-  var g = e.dygraph;
-  var setName = e.setName;
-  var errorBars = g.getBooleanOption("errorBars") ||
-      g.getBooleanOption("customBars");
-  if (!errorBars) return;
-
-  var fillGraph = g.getBooleanOption("fillGraph", setName);
-  if (fillGraph) {
-    Dygraph.warn("Can't use fillGraph option with error bars");
-  }
-
-  var ctx = e.drawingContext;
-  var color = e.color;
-  var fillAlpha = g.getNumericOption('fillAlpha', setName);
-  var stepPlot = g.getBooleanOption("stepPlot", setName);
-  var points = e.points;
-
-  var iter = Dygraph.createIterator(points, 0, points.length,
-      DygraphCanvasRenderer._getIteratorPredicate(
-          g.getBooleanOption("connectSeparatedPoints", setName)));
-
-  var newYs;
-
-  // setup graphics context
-  var prevX = NaN;
-  var prevY = NaN;
-  var prevYs = [-1, -1];
-  // should be same color as the lines but only 15% opaque.
-  var rgb = Dygraph.toRGB_(color);
-  var err_color =
-      'rgba(' + rgb.r + ',' + rgb.g + ',' + rgb.b + ',' + fillAlpha + ')';
-  ctx.fillStyle = err_color;
-  ctx.beginPath();
-
-  var isNullUndefinedOrNaN = function(x) {
-    return (x === null ||
-            x === undefined ||
-            isNaN(x));
-  };
-
-  while (iter.hasNext) {
-    var point = iter.next();
-    if ((!stepPlot && isNullUndefinedOrNaN(point.y)) ||
-        (stepPlot && !isNaN(prevY) && isNullUndefinedOrNaN(prevY))) {
+      // setup graphics context
       prevX = NaN;
-      continue;
-    }
+      prevY = NaN;
+      prevYs = [-1, -1];
+      yscale = axis.yscale;
+      // should be same color as the lines but only 15% opaque.
+      rgb = new RGBColor(color);
+      err_color = 'rgba(' + rgb.r + ',' + rgb.g + ',' + rgb.b + ',' +
+                            fillAlpha + ')';
+      ctx.fillStyle = err_color;
+      ctx.beginPath();
+      for (j = firstIndexInSet; j < afterLastIndexInSet; j = next(j)) {
+        point = points[j];
+        if (point.name == setName) { // TODO(klausw): this is always true
+          if (!Dygraph.isOK(point.y)) {
+            prevX = NaN;
+            continue;
+          }
 
-    if (stepPlot) {
-      newYs = [ point.y_bottom, point.y_top ];
-      prevY = point.y;
-    } else {
-      newYs = [ point.y_bottom, point.y_top ];
-    }
-    newYs[0] = e.plotArea.h * newYs[0] + e.plotArea.y;
-    newYs[1] = e.plotArea.h * newYs[1] + e.plotArea.y;
-    if (!isNaN(prevX)) {
-      if (stepPlot) {
-        ctx.moveTo(prevX, prevYs[0]);
-        ctx.lineTo(point.canvasx, prevYs[0]);
-        ctx.lineTo(point.canvasx, prevYs[1]);
-      } else {
-        ctx.moveTo(prevX, prevYs[0]);
-        ctx.lineTo(point.canvasx, newYs[0]);
-        ctx.lineTo(point.canvasx, newYs[1]);
+          // TODO(danvk): here
+          if (stepPlot) {
+            newYs = [ point.y_bottom, point.y_top ];
+            prevY = point.y;
+          } else {
+            newYs = [ point.y_bottom, point.y_top ];
+          }
+          newYs[0] = this.area.h * newYs[0] + this.area.y;
+          newYs[1] = this.area.h * newYs[1] + this.area.y;
+          if (!isNaN(prevX)) {
+            if (stepPlot) {
+              ctx.moveTo(prevX, newYs[0]);
+            } else {
+              ctx.moveTo(prevX, prevYs[0]);
+            }
+            ctx.lineTo(point.canvasx, newYs[0]);
+            ctx.lineTo(point.canvasx, newYs[1]);
+            if (stepPlot) {
+              ctx.lineTo(prevX, newYs[1]);
+            } else {
+              ctx.lineTo(prevX, prevYs[1]);
+            }
+            ctx.closePath();
+          }
+          prevYs = newYs;
+          prevX = point.canvasx;
+        }
       }
-      ctx.lineTo(prevX, prevYs[1]);
-      ctx.closePath();
+      ctx.fill();
     }
-    prevYs = newYs;
-    prevX = point.canvasx;
+    ctx.restore();
+  } else if (fillGraph) {
+    ctx.save();
+    var baseline = [];  // for stacked graphs: baseline for filling
+
+    // process sets in reverse order (needed for stacked graphs)
+    for (i = setCount - 1; i >= 0; i--) {
+      setName = setNames[i];
+      color = this.colors[setName];
+      axis = this.dygraph_.axisPropertiesForSeries(setName);
+      var axisY = 1.0 + axis.minyval * axis.yscale;
+      if (axisY < 0.0) axisY = 0.0;
+      else if (axisY > 1.0) axisY = 1.0;
+      axisY = this.area.h * axisY + this.area.y;
+      var firstIndexInSet = this.layout.setPointsOffsets[i];
+      var setLength = this.layout.setPointsLengths[i];
+      var afterLastIndexInSet = firstIndexInSet + setLength;
+
+      var next = DygraphCanvasRenderer.makeNextPointStep_(
+        this.attr_('connectSeparatedPoints'), points,
+        afterLastIndexInSet);
+
+      // setup graphics context
+      prevX = NaN;
+      prevYs = [-1, -1];
+      yscale = axis.yscale;
+      // should be same color as the lines but only 15% opaque.
+      rgb = new RGBColor(color);
+      err_color = 'rgba(' + rgb.r + ',' + rgb.g + ',' + rgb.b + ',' +
+                            fillAlpha + ')';
+      ctx.fillStyle = err_color;
+      ctx.beginPath();
+      for (j = firstIndexInSet; j < afterLastIndexInSet; j = next(j)) {
+        point = points[j];
+        if (point.name == setName) { // TODO(klausw): this is always true
+          if (!Dygraph.isOK(point.y)) {
+            prevX = NaN;
+            continue;
+          }
+          if (stackedGraph) {
+            var lastY = baseline[point.canvasx];
+            if (lastY === undefined) lastY = axisY;
+            baseline[point.canvasx] = point.canvasy;
+            newYs = [ point.canvasy, lastY ];
+          } else {
+            newYs = [ point.canvasy, axisY ];
+          }
+          if (!isNaN(prevX)) {
+            ctx.moveTo(prevX, prevYs[0]);
+            if (stepPlot) {
+              ctx.lineTo(point.canvasx, prevYs[0]);
+            } else {
+              ctx.lineTo(point.canvasx, newYs[0]);
+            }
+            ctx.lineTo(point.canvasx, newYs[1]);
+            ctx.lineTo(prevX, prevYs[1]);
+            ctx.closePath();
+          }
+          prevYs = newYs;
+          prevX = point.canvasx;
+        }
+      }
+      ctx.fill();
+    }
+    ctx.restore();
   }
-  ctx.fill();
+
+  // Drawing the lines.
+  for (i = 0; i < setCount; i += 1) {
+    this._drawLine(ctx, i);
+  }
 };
 
 /**
- * Draws the shaded regions when "fillGraph" is set. Not to be confused with
- * error bars.
- *
- * For stacked charts, it's more convenient to handle all the series
- * simultaneously. So this plotter plots all the points on the first series
- * it's asked to draw, then ignores all the other series.
- *
+ * This does dashed lines onto a canvas for a given pattern. You must call
+ * ctx.stroke() after to actually draw it, much line ctx.lineTo(). It remembers
+ * the state of the line in regards to where we left off on drawing the pattern.
+ * You can draw a dashed line in several function calls and the pattern will be
+ * continous as long as you didn't call this function with a different pattern
+ * in between.
+ * @param ctx The canvas 2d context to draw on.
+ * @param x The start of the line's x coordinate.
+ * @param y The start of the line's y coordinate.
+ * @param x2 The end of the line's x coordinate.
+ * @param y2 The end of the line's y coordinate.
+ * @param pattern The dash pattern to draw, an array of integers where even 
+ * index is drawn and odd index is not drawn (Ex. [10, 2, 5, 2], 10 is drawn 5
+ * is drawn, 2 is the space between.). A null pattern, array of length one, or
+ * empty array will do just a solid line.
  * @private
  */
-DygraphCanvasRenderer._fillPlotter = function(e) {
-  // Skip if we're drawing a single series for interactive highlight overlay.
-  if (e.singleSeriesName) return;
+DygraphCanvasRenderer.prototype._dashedLine = function(ctx, x, y, x2, y2, pattern) {
+  // Original version http://stackoverflow.com/questions/4576724/dotted-stroke-in-canvas
+  // Modified by Russell Valentine to keep line history and continue the pattern
+  // where it left off.
+  var dx, dy, len, rot, patternIndex, segment;
 
-  // We'll handle all the series at once, not one-by-one.
-  if (e.seriesIndex !== 0) return;
-
-  var g = e.dygraph;
-  var setNames = g.getLabels().slice(1);  // remove x-axis
-
-  // getLabels() includes names for invisible series, which are not included in
-  // allSeriesPoints. We remove those to make the two match.
-  // TODO(danvk): provide a simpler way to get this information.
-  for (var i = setNames.length; i >= 0; i--) {
-    if (!g.visibility()[i]) setNames.splice(i, 1);
+  // If we don't have a pattern or it is an empty array or of size one just
+  // do a solid line.
+  if (!pattern || pattern.length <= 1) {
+    ctx.moveTo(x, y);
+    ctx.lineTo(x2, y2);
+    return;
   }
 
-  var anySeriesFilled = (function() {
-    for (var i = 0; i < setNames.length; i++) {
-      if (g.getBooleanOption("fillGraph", setNames[i])) return true;
-    }
-    return false;
-  })();
-
-  if (!anySeriesFilled) return;
-
-  var ctx = e.drawingContext;
-  var area = e.plotArea;
-  var sets = e.allSeriesPoints;
-  var setCount = sets.length;
-
-  var fillAlpha = g.getNumericOption('fillAlpha');
-  var stackedGraph = g.getBooleanOption("stackedGraph");
-  var colors = g.getColors();
-
-  // For stacked graphs, track the baseline for filling.
-  //
-  // The filled areas below graph lines are trapezoids with two
-  // vertical edges. The top edge is the line segment being drawn, and
-  // the baseline is the bottom edge. Each baseline corresponds to the
-  // top line segment from the previous stacked line. In the case of
-  // step plots, the trapezoids are rectangles.
-  var baseline = {};
-  var currBaseline;
-  var prevStepPlot;  // for different line drawing modes (line/step) per series
-
-  // process sets in reverse order (needed for stacked graphs)
-  for (var setIdx = setCount - 1; setIdx >= 0; setIdx--) {
-    var setName = setNames[setIdx];
-    if (!g.getBooleanOption('fillGraph', setName)) continue;
-    
-    var stepPlot = g.getBooleanOption('stepPlot', setName);
-    var color = colors[setIdx];
-    var axis = g.axisPropertiesForSeries(setName);
-    var axisY = 1.0 + axis.minyval * axis.yscale;
-    if (axisY < 0.0) axisY = 0.0;
-    else if (axisY > 1.0) axisY = 1.0;
-    axisY = area.h * axisY + area.y;
-
-    var points = sets[setIdx];
-    var iter = Dygraph.createIterator(points, 0, points.length,
-        DygraphCanvasRenderer._getIteratorPredicate(
-            g.getBooleanOption("connectSeparatedPoints", setName)));
-
-    // setup graphics context
-    var prevX = NaN;
-    var prevYs = [-1, -1];
-    var newYs;
-    // should be same color as the lines but only 15% opaque.
-    var rgb = Dygraph.toRGB_(color);
-    var err_color =
-        'rgba(' + rgb.r + ',' + rgb.g + ',' + rgb.b + ',' + fillAlpha + ')';
-    ctx.fillStyle = err_color;
-    ctx.beginPath();
-    var last_x, is_first = true;
-    while (iter.hasNext) {
-      var point = iter.next();
-      if (!Dygraph.isOK(point.y)) {
-        prevX = NaN;
-        if (point.y_stacked !== null && !isNaN(point.y_stacked)) {
-          baseline[point.canvasx] = area.h * point.y_stacked + area.y;
-        }
-        continue;
-      }
-      if (stackedGraph) {
-        if (!is_first && last_x == point.xval) {
-          continue;
-        } else {
-          is_first = false;
-          last_x = point.xval;
-        }
-
-        currBaseline = baseline[point.canvasx];
-        var lastY;
-        if (currBaseline === undefined) {
-          lastY = axisY;
-        } else {
-          if(prevStepPlot) {
-            lastY = currBaseline[0];
-          } else {
-            lastY = currBaseline;
-          }
-        }
-        newYs = [ point.canvasy, lastY ];
-
-        if(stepPlot) {
-          // Step plots must keep track of the top and bottom of
-          // the baseline at each point.
-          if(prevYs[0] === -1) {
-            baseline[point.canvasx] = [ point.canvasy, axisY ];
-          } else {
-            baseline[point.canvasx] = [ point.canvasy, prevYs[0] ];
-          }
-        } else {
-          baseline[point.canvasx] = point.canvasy;
-        }
-
-      } else {
-        newYs = [ point.canvasy, axisY ];
-      }
-      if (!isNaN(prevX)) {
-        ctx.moveTo(prevX, prevYs[0]);
-        
-        // Move to top fill point
-        if (stepPlot) {
-          ctx.lineTo(point.canvasx, prevYs[0]);
-        } else {
-          ctx.lineTo(point.canvasx, newYs[0]);
-        }
-        // Move to bottom fill point
-        if (prevStepPlot && currBaseline) {
-          // Draw to the bottom of the baseline
-          ctx.lineTo(point.canvasx, currBaseline[1]);
-        } else {
-          ctx.lineTo(point.canvasx, newYs[1]);
-        }
-
-        ctx.lineTo(prevX, prevYs[1]);
-        ctx.closePath();
-      }
-      prevYs = newYs;
-      prevX = point.canvasx;
-    }
-    prevStepPlot = stepPlot;
-    ctx.fill();
+  // If we have a different dash pattern than the last time this was called we
+  // reset our dash history and start the pattern from the begging 
+  // regardless of state of the last pattern.
+  if (!Dygraph.compareArrays(pattern, this._dashedLineToHistoryPattern)) {
+    this._dashedLineToHistoryPattern = pattern;
+    this._dashedLineToHistory = [0, 0];
   }
+  ctx.save();
+
+  // Calculate transformation parameters
+  dx = (x2-x);
+  dy = (y2-y);
+  len = Math.sqrt(dx*dx + dy*dy);
+  rot = Math.atan2(dy, dx);
+
+  // Set transformation
+  ctx.translate(x, y);
+  ctx.moveTo(0, 0);
+  ctx.rotate(rot);
+
+  // Set last pattern index we used for this pattern.
+  patternIndex = this._dashedLineToHistory[0];
+  x = 0;
+  while (len > x) {
+    // Get the length of the pattern segment we are dealing with.
+    segment = pattern[patternIndex];
+    // If our last draw didn't complete the pattern segment all the way we 
+    // will try to finish it. Otherwise we will try to do the whole segment.
+    if (this._dashedLineToHistory[1]) {
+      x += this._dashedLineToHistory[1];
+    } else {
+      x += segment;
+    }
+    if (x > len) {
+      // We were unable to complete this pattern index all the way, keep
+      // where we are the history so our next draw continues where we left off
+      // in the pattern.
+      this._dashedLineToHistory = [patternIndex, x-len];
+      x = len;
+    } else {
+      // We completed this patternIndex, we put in the history that we are on
+      // the beginning of the next segment.
+      this._dashedLineToHistory = [(patternIndex+1)%pattern.length, 0];
+    }
+
+    // We do a line on a even pattern index and just move on a odd pattern index.
+    // The move is the empty space in the dash.
+    if(patternIndex % 2 === 0) {
+      ctx.lineTo(x, 0);
+    } else {
+      ctx.moveTo(x, 0);
+    }
+    // If we are not done, next loop process the next pattern segment, or the
+    // first segment again if we are at the end of the pattern.
+    patternIndex = (patternIndex+1) % pattern.length;
+  }
+  ctx.restore();
 };

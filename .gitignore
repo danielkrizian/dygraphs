@@ -1,5 +1,7 @@
 jsdoc
 docs/options.html
 .Rhistory
+.Rproj.user
+.RData
 dygraphs-mod.Rproj
 dygraphs.Rproj
