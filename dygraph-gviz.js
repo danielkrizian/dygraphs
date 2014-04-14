@@ -23,12 +23,18 @@
 
 /**
  * A wrapper around Dygraph that implements the gviz API.
- * @param {Object} container The DOM object the visualization should live in.
+ * @param {!HTMLDivElement} container The DOM object the visualization should
+ *     live in.
+ * @constructor
  */
 Dygraph.GVizChart = function(container) {
   this.container = container;
 };
 
+/**
+ * @param {GVizDataTable} data
+ * @param {Object.<*>} options
+ */
 Dygraph.GVizChart.prototype.draw = function(data, options) {
   // Clear out any existing dygraph.
   // TODO(danvk): would it make more sense to simply redraw using the current
@@ -44,7 +50,7 @@ Dygraph.GVizChart.prototype.draw = function(data, options) {
 /**
  * Google charts compatible setSelection
  * Only row selection is supported, all points in the row will be highlighted
- * @param {Array} array of the selected cells
+ * @param {Array.<{row:number}>} selection_array array of the selected cells
  * @public
  */
 Dygraph.GVizChart.prototype.setSelection = function(selection_array) {
@@ -57,7 +63,7 @@ Dygraph.GVizChart.prototype.setSelection = function(selection_array) {
 
 /**
  * Google charts compatible getSelection implementation
- * @return {Array} array of the selected cells
+ * @return {Array.<{row:number,column:number}>} array of the selected cells
  * @public
  */
 Dygraph.GVizChart.prototype.getSelection = function() {
@@ -67,8 +73,8 @@ Dygraph.GVizChart.prototype.getSelection = function() {
 
   if (row < 0) return selection;
 
-  var datasets = this.date_graph.layout_.datasets;
-  for (var setIdx = 0; setIdx < datasets.length; ++setIdx) {
+  var points = this.date_graph.layout_.points;
+  for (var setIdx = 0; setIdx < points.length; ++setIdx) {
     selection.push({row: row, column: setIdx + 1});
   }
 
