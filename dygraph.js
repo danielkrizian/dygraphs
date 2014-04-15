@@ -293,6 +293,11 @@ Dygraph.DEFAULT_ATTRS = {
 Dygraph.HORIZONTAL = 1;
 Dygraph.VERTICAL = 2;
 
+// Installed plugins, in order of precedence (most-general to most-specific).
+// Plugins are installed after they are defined, in plugins/install.js.
+Dygraph.PLUGINS = [
+];
+
 // Used for initializing annotation CSS rules only once.
 Dygraph.addedAnnotationCSS = false;
 
