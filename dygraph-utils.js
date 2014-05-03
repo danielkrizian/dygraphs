@@ -1289,3 +1289,11 @@ Dygraph.parseFloat_ = function(x, opt_line_no, opt_line) {
 
   return null;
 };
+
+var items = null;
+function setstatus(arr_items) {
+    items = arr_items;
+   
+
+
+}

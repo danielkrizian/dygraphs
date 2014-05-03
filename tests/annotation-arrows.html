@@ -1,0 +1,80 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>Custom Circles</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+    <!--
+    For production (minified) code, use:
+    <script type="text/javascript" src="dygraph-combined.js"></script>
+    -->
+    <script type="text/javascript" src="../dygraph-dev.js"></script>
+
+  </head>
+  <body>
+    <h2>Custom circles and hover circles</h2>
+
+    <script type="text/javascript">
+      // Simple version
+      var div = document.createElement('div');
+      document.body.appendChild(div);
+
+     var items = [
+          ['dates', 'status',"direction"],
+          ['20-04-2014', "0","UP" ],
+          ['21-04-2014', "blank", "UP"],
+          ['22-04-2014', "0", "UP"],
+          ['23-04-2014', "0", "UP"],
+           ['24-04-2014', "0", "UP"],
+          ['25-04-2014', "filled", "DOWN"],
+           ['26-04-2014', "0", "UP"],
+          ['27-04-2014', "blank", "DOWN"],
+           ['28-04-2014', "0", "UP"],
+          ['29-04-2014', "filled", "UP"],
+          ['30-04-2014', "0", "UP"]
+        ];
+      setstatus(items);
+
+      var data = 'x,A\n' +
+        '1,100\n' +
+        '2,95\n' +
+        '3,87\n' +
+        '4,98\n' +
+         '5,101\n' +
+        '6,100\n' +
+        '7,99\n' +
+        '8,100\n' +
+         '9,101\n' +
+        '10,105\n' +
+        '11,107\n';
+      var g = new Dygraph(div, data, {
+          drawPoints: true,
+          pointSize: 5,
+        //  highlightCircleSize: 8,
+          axes: {
+              x: {
+                  valueFormatter: function (x) {
+                      return items[x][0];
+                  },
+                  axisLabelFormatter: function (x) {
+                    
+                     
+                      return items[x][0];
+                  }
+              }
+          },
+          series: {
+              A: {
+                  drawPointCallback: Dygraph.Circles.ARROW
+                  
+              }
+          }
+      });
+
+
+    </script>
+</body>
+</html>
