@@ -40,3 +40,5 @@ clean-combined-test: clean
 
 lint:
 	@./lint.sh
+
+.PHONY: all clean generate-combined generate-documentation gwt generate-gwt test test-combined move-combined clean-combined-test lint
