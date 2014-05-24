@@ -16,5 +16,6 @@ Dygraph.PLUGINS.push(
   Dygraph.Plugins.ChartLabels,
   Dygraph.Plugins.Annotations,
   Dygraph.Plugins.Grid,
-  Dygraph.Plugins.Crosshair
+  Dygraph.Plugins.Crosshair,
+  Dygraph.Plugins.CanvasAnnotations
 );

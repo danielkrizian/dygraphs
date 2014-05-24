@@ -29,6 +29,7 @@
     "dygraph-plugin-base.js",
     "plugins/annotations.js",
     "plugins/axes.js",
+    "plugins/canvas-annotations.js",
     "plugins/chart-labels.js",
     "plugins/crosshair.js",
     "plugins/grid.js",
