@@ -20,6 +20,10 @@ generate-documentation:
 	@./generate-documentation.py > docs/options.html
 	@chmod a+r docs/options.html
 
+github:
+	@echo Deploy to GitHub pages
+	@./push-to-gh.sh
+
 gwt: generate-gwt
 
 generate-gwt:
@@ -40,3 +44,5 @@ clean-combined-test: clean
 
 lint:
 	@./lint.sh
+
+.PHONY: all clean generate-combined generate-documentation github gwt generate-gwt test test-combined move-combined clean-combined-test lint
