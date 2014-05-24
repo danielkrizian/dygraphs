@@ -9,7 +9,7 @@ set -e
 ./generate-combined.sh
 
 # Copy generated file into temp file
-temp_file=$(mktemp -d dygraph-combined.XXXX)
+temp_file=$(mktemp dygraph-combined.XXXX)
 cp dygraph-combined.js $temp_file
 git checkout dygraph-combined.js
 
