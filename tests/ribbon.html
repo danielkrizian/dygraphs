@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>coloured ribbon</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+    <!--
+    For production (minified) code, use:
+    <script type="text/javascript" src="dygraph-combined.js"></script>
+    -->
+    <script type="text/javascript" src="../dygraph-dev.js"></script>
+  </head>
+  <body>
+    <div id="div_g" style="width:600px; height:300px;"></div>
+    <script type="text/javascript">
+      function data() {
+        return "Date,High,Low\n" +
+        "20070101,62,39\n" +
+        "20070102,62,44\n" +
+        "20070103,62,42\n" +
+        "20070104,57,45\n" +
+        "20070105,54,44\n" +
+        "20070106,55,36\n" +
+        "20070107,62,45\n" +
+        "20070108,66,48\n" +
+        "20070109,63,39\n" +
+        "20070110,57,37\n";
+      }
+      function decodeColor(palette, encoded, val) {
+        var max = Math.max.apply(null, encoded);
+        val = val / max;
+        var idx = Math.ceil((palette.length - 1) * val);
+
+        return palette[idx];
+      } 
+      var palette = ["none", "red", "green"];
+      var encodedColors = [0, 0.5, 0.5, 1, 1, 1, 0, 0, 0];
+
+      var g = new Dygraph(
+        document.getElementById("div_g"),
+        data, {
+          underlayCallback: function(canvas, area, g) {
+            for (var i = 0; i < g.layout_.points[0].length; i++) {
+              var point = g.layout_.points[0][i];
+              var nextpoint = g.layout_.points[0][i + 1];
+
+              var left = g.toDomCoords(point.xval, 0)[0];
+              var right = (nextpoint === undefined) ? area.w : g.toDomCoords(nextpoint.xval, 0)[0];
+
+              var color = decodeColor(palette, encodedColors, encodedColors[i]);
+
+              if (color === "none") {
+                color = "transparent";
+              }
+
+              canvas.fillStyle = color;
+              canvas.fillRect(left, area.y, right - left, area.h);
+            }
+          }
+        }
+      );
+    </script>
+  </body>
+</html>
