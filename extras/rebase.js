@@ -1,6 +1,5 @@
 Dygraph.Plugins.Rebase = (function() {
   var rebase = function() {
-
   };
 
   rebase.prototype.toString = function() {
@@ -20,11 +19,17 @@ Dygraph.Plugins.Rebase = (function() {
   rebase.prototype.willDrawChart = function(e) {
     var g = e.dygraph;
 
-    if (g.getNumericOption("rebase") !== null) {
-      var rebaseOpt = g.getNumericOption("rebase");
-    } else {
-      return;
+    if (g.getOption("rebase") === null) {
+      return
     }
+
+    function isNumber(value) {
+      var type = typeof value;
+      return type == 'number' ||
+        (value && type == 'object' && toString.call(value) == numberClass) || false;
+    }
+
+    var rebaseOpt = g.getOption("rebase");
     var p = g.plotter_;
     var sets = p.layout.points;
 
@@ -35,18 +40,29 @@ Dygraph.Plugins.Rebase = (function() {
       var logscale = g.attributes_.getForSeries("logscale", setName);
       var starty;
 
-      var base = rebase.calcRebase_(axis, rebaseOpt, logscale);
-      base = p.area.h * base + p.area.y;
+      if (isNumber(rebaseOpt)) {
+        var base = rebase.calcRebase_(axis, rebaseOpt, logscale);
+      } else {
+        var yRange = g.yAxisRange(0);
+        var avg = (yRange[1] - yRange[0]) / 2;
+        var base = rebase.calcRebase_(axis, avg, logscale);
+        
+        g.attrs_.axes.y.axisLabelFormatter = function(y) {
+          return 'y' + y;
+        };
+
+        console.log(g);
+      }
 
       for (var j = 0; j < points.length; j++) {
         var point = points[j];
-        var y = p.area.h * point.y + p.area.y;
-        
+        var y = point.y;
+
         if (j === 0) {
           starty = y;
-          point.canvasy = base;
+          point.y = base;
         } else {
-          point.canvasy = y * base / starty;
+          point.y = y * base / starty;
         }
       }
     }
