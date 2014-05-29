@@ -16,16 +16,30 @@
   </head>
   <body>
     <p>Hover, click and zoom to test the rebase:</p>
-    <div id="div_g" style="width:600px; height:300px;"></div>
+    <p>Value:</p>
+    <div id="div_g1" style="width:600px; height:300px;"></div>
+    <p>Percent:</p>
+    <div id="div_g2" style="width:600px; height:300px;"></div>
+
     <script type="text/javascript">
       var rebase = Dygraph.Plugins.Rebase;
-      var g = new Dygraph(
-        document.getElementById("div_g"),
+      var g1 = new Dygraph(
+        document.getElementById("div_g1"),
         data,{
           plugins: [rebase],
-          rebase: 'percent'
+          rebase: 50
         }
       );
+      var g2 = new Dygraph(
+        document.getElementById("div_g2"),
+        data,{
+          plugins: [rebase],
+          rebase: 'precent'
+        }
+      );
+      g2.ready(function() {
+        g2.drawGraph_(); // Redraw to update Y axis labels
+      });
     </script>
   </body>
 </html>

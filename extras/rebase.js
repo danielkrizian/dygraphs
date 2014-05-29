@@ -46,12 +46,20 @@ Dygraph.Plugins.Rebase = (function() {
         var yRange = g.yAxisRange(0);
         var avg = (yRange[1] - yRange[0]) / 2;
         var base = rebase.calcRebase_(axis, avg, logscale);
-        
-        g.attrs_.axes.y.axisLabelFormatter = function(y) {
-          return 'y' + y;
-        };
 
-        console.log(g);
+        g.updateOptions({
+          axes: {
+            y: {
+              axisLabelFormatter: function(y) {
+                var avg_percent = avg * 100 / yRange[1];
+                var percent = (y * 100 / yRange[1]) - avg_percent;
+
+                return Math.round(percent) + '%';
+              }
+            }
+          }
+        }, true);
+        
       }
 
       for (var j = 0; j < points.length; j++) {
