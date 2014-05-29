@@ -24,7 +24,8 @@ GetSources () {
     datahandler/bars-custom.js \
     datahandler/bars-error.js \
     datahandler/bars-fractions.js \
-    extras/shapes.js 
+    extras/shapes.js \
+    extras/plotters.js 
   do
       echo "$F"
   done
