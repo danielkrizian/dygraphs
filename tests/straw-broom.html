@@ -20,6 +20,8 @@
     <div id="div_g1" style="width:600px; height:300px;"></div>
     <p>Percent:</p>
     <div id="div_g2" style="width:600px; height:300px;"></div>
+    <p>None:</p>
+    <div id="div_g3" style="width:600px; height:300px;"></div>
 
     <script type="text/javascript">
       var rebase = Dygraph.Plugins.Rebase;
@@ -40,6 +42,10 @@
       g2.ready(function() {
         g2.drawGraph_(); // Redraw to update Y axis labels
       });
+      var g3 = new Dygraph(
+        document.getElementById("div_g3"),
+        data,{}
+      );
     </script>
   </body>
 </html>
