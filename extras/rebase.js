@@ -42,7 +42,7 @@ Dygraph.Plugins.Rebase = (function() {
 
       if (isNumber(rebaseOpt)) {
         var base = rebase.calcRebase_(axis, rebaseOpt, logscale);
-      } else {
+      } else if (rebaseOpt === 'percent') {
         var yRange = g.yAxisRange(0);
         var avg = (yRange[1] - yRange[0]) / 2;
         var base = rebase.calcRebase_(axis, avg, logscale);
@@ -59,7 +59,6 @@ Dygraph.Plugins.Rebase = (function() {
             }
           }
         }, true);
-        
       }
 
       for (var j = 0; j < points.length; j++) {
