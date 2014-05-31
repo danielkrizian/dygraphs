@@ -243,7 +243,7 @@ var gs = [];
     x: Date.parse('2004-01-02')
   },
   {
-    series: "Close",
+    series: 1,
     canvas: Dygraph.Circles.ARROW,
     rotation: "up",
     fillStyle: "green",
@@ -261,7 +261,7 @@ var gs = [];
     x: Date.parse('2009-01-02')
   },
   {
-    series: "Close",
+    series: 1,
     canvas: Dygraph.Circles.ARROW,
     rotation: "up",
     fillStyle: "green",
@@ -279,7 +279,7 @@ var gs = [];
     x: Date.parse('2013-06-06')
   },
   {
-    series: "Close",
+    series: 1,
     canvas: Dygraph.Circles.ARROW,
     rotation: "up",
     fillStyle: "green",
@@ -298,7 +298,15 @@ var gs = [];
     for (var i = 0; i < gs.length; i++) {
       var g = gs[i];
       g.ready(function () {
-        g.setAnnotations(params.annotations);
+        var labels = g.getLabels();
+        g.setAnnotations(_.map(params.annotations, function(annotation) {
+          if (_.indexOf(labels, annotation.series) === -1) {
+            if (_.isNumber(annotation.series)) {
+              annotation.series = labels[annotation.series];
+            }
+          }
+          return annotation;
+        }));
       });
     }
   })();
