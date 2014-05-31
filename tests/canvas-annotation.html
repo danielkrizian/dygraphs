@@ -240,7 +240,7 @@ var gs = [];
     fillStyle: "red",
     strokeStyle: "black",
     text: "<p><img src='dollar.png'> <strong>Lorem ipsum</strong> dolor sit amet,<br>consectetur <em>adipiscing elit</em>.</p>",
-    x: 1175126400000
+    x: Date.parse('2004-01-02')
   },
   {
     series: "Close",
@@ -249,7 +249,7 @@ var gs = [];
     fillStyle: "green",
     strokeStyle: "black",
     text: "<p><img src='dollar.png'> <strong>Lorem ipsum</strong> dolor sit amet,<br>consectetur <em>adipiscing elit</em>.</p>",
-    x: 1039564800000
+    x: Date.parse('2003-01-02')
   },
   {
     series: "SMA(Close, 200)",
@@ -258,7 +258,7 @@ var gs = [];
     fillStyle: "red",
     strokeStyle: "black",
     text: "<p><img src='dollar.png'> <strong>Lorem ipsum</strong> dolor sit amet,<br>consectetur <em>adipiscing elit</em>.</p>",
-    x: 1320105600000
+    x: Date.parse('2009-01-02')
   },
   {
     series: "Close",
@@ -267,7 +267,7 @@ var gs = [];
     fillStyle: "green",
     strokeStyle: "black",
     text: "<p><img src='dollar.png'> <strong>Lorem ipsum</strong> dolor sit amet,<br>consectetur <em>adipiscing elit</em>.</p>",
-    x: 1047254400000
+    x: Date.parse('2007-07-02')
   },
   {
     series: "SMA(Close, 200)",
@@ -276,7 +276,7 @@ var gs = [];
     fillStyle: "red",
     strokeStyle: "black",
     text: "<p><img src='dollar.png'> <strong>Lorem ipsum</strong> dolor sit amet,<br>consectetur <em>adipiscing elit</em>.</p>",
-    x: 1363046400000
+    x: Date.parse('2013-06-06')
   },
   {
     series: "Close",
@@ -285,7 +285,7 @@ var gs = [];
     fillStyle: "green",
     strokeStyle: "black",
     text: "<p><img src='dollar.png'> <strong>Lorem ipsum</strong> dolor sit amet,<br>consectetur <em>adipiscing elit</em>.</p>",
-    x: 1320105600000
+    x: Date.parse('2011-05-05')
   }
 ]
 };
@@ -294,11 +294,10 @@ var gs = [];
       _.unzip(params.data),
       params.options
     ));
-    
+
     for (var i = 0; i < gs.length; i++) {
       var g = gs[i];
       g.ready(function () {
-        console.log(params.annotations);
         g.setAnnotations(params.annotations);
       });
     }
