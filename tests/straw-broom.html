@@ -13,39 +13,58 @@
     <script type="text/javascript" src="../dygraph-dev.js"></script>
     <script type="text/javascript" src="data.js"></script>
     <script type="text/javascript" src="../extras/rebase.js"></script>
+
+    <style type="text/css">
+      #h_g1 { position: absolute; left: 65px; top: 50px; }
+      #div_g1 { position: absolute; left: 10px; top: 100px; }
+      #h_g2 { position: absolute; left: 575px; top: 50px; }
+      #div_g2 { position: absolute; left: 520px; top: 100px; }
+      #h_g3 { position: absolute; left: 65px; top: 400px; }
+      #div_g3 { position: absolute; left: 10px; top: 450px; }
+    </style>
   </head>
   <body>
     <p>Hover, click and zoom to test the rebase:</p>
-    <p>Value:</p>
-    <div id="div_g1" style="width:600px; height:300px;"></div>
-    <p>Percent:</p>
-    <div id="div_g2" style="width:600px; height:300px;"></div>
-    <p>None:</p>
-    <div id="div_g3" style="width:600px; height:300px;"></div>
+    <h2 id="h_g1">Value:</h2>
+    <div id="div_g1" style="width:500px; height:300px;"></div>
+    <h2 id="h_g2">Percent:</h2>
+    <div id="div_g2" style="width:500px; height:300px;"></div>
+    <h2 id="h_g3">None:</h2>
+    <div id="div_g3" style="width:500px; height:300px;"></div>
 
     <script type="text/javascript">
+      var gs = [];
+      var blockRedraw = false;
+      var initialized = false;
       var rebase = Dygraph.Plugins.Rebase;
-      var g1 = new Dygraph(
-        document.getElementById("div_g1"),
-        data,{
-          plugins: [rebase],
-          rebase: 50
-        }
-      );
-      var g2 = new Dygraph(
-        document.getElementById("div_g2"),
-        data,{
-          plugins: [rebase],
-          rebase: 'percent'
-        }
-      );
-      g2.ready(function() {
-        g2.drawGraph_(); // Redraw to update Y axis labels
-      });
-      var g3 = new Dygraph(
-        document.getElementById("div_g3"),
-        data,{}
-      );
+      var rebaseOpts = [50, 'percent', null];
+      for (var i = 1; i <= 3; i++) {
+        var baseOpt = rebaseOpts.shift();
+        gs.push(
+          new Dygraph(
+            document.getElementById("div_g" + i),
+            data,
+            {
+              plugins: [rebase],
+              rebase: baseOpt,
+              drawCallback: function(me, initial) {
+                if (blockRedraw || initial) return;
+                blockRedraw = true;
+                var range = me.xAxisRange();
+                var yrange = me.yAxisRange();
+                for (var j = 0; j < 3; j++) {
+                  if (gs[j] == me) continue;
+                  gs[j].updateOptions( {
+                    dateWindow: range,
+                    valueRange: yrange
+                  } );
+                }
+                blockRedraw = false;
+              }
+            }
+          )
+        );
+      }
     </script>
   </body>
 </html>

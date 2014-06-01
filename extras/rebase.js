@@ -51,27 +51,28 @@ Dygraph.Plugins.Rebase = (function() {
           axes: {
             y: {
               axisLabelFormatter: function(y) {
-                var avg_percent = avg * 100 / yRange[1];
-                var percent = (y * 100 / yRange[1]) - avg_percent;
-
-                return Math.round(percent) + '%';
+                return y + '%';
+              },
+              ticker: function(a, b, pixels, opts, dygraph, vals) {
+                // TODO
+                return Dygraph.numericTicks(a, b, pixels, opts, dygraph, vals);
               }
             }
-          }
+          },
+          valueRange: [-100, 100]
         }, true);
       }
 
-      for (var j = 0; j < points.length; j++) {
-        var point = points[j];
-        var y = point.y;
+      var ys = points.reduce(function(p, c) {
+        p.push(c.y);
+        return p;
+      }, []);
+      var min = Math.min.apply(Math, ys);
+      var max = Math.max.apply(Math, ys) - min;
 
-        if (j === 0) {
-          starty = y;
-          point.y = base;
-        } else {
-          point.y = y * base / starty;
-        }
-      }
+      points.map(function(c) {
+        c.y = base * (c.y - min) / max;
+      });
     }
   };
 
