@@ -1,5 +1,43 @@
+(function() {
+  "use strict";
+
+  Dygraph.DataHandlers.RebaseHandler = function(base) {
+    this.base = base;
+  };
+
+  var RebaseHandler =  Dygraph.DataHandlers.RebaseHandler;
+  RebaseHandler.prototype = new Dygraph.DataHandlers.DefaultHandler();
+
+  RebaseHandler.prototype.extractSeries = function(rawData, i, options) {
+    var series = [];
+    var baseOpt = options.get("rebase");
+    var initial = rawData[0][i];
+    var logScale = options.get("logscale");
+
+    for (var j = 0; j < rawData.length; j++) {
+      var x = rawData[j][0];
+      var point;
+      if (baseOpt === "percent") {
+        point = j ? (rawData[j][i] / initial - 1) * 100 : 0;
+      } else {
+        point = j ? rawData[j][i] * baseOpt / initial : baseOpt;
+      }
+      if (logScale) {
+        if (point <= 0) {
+          point = null;
+        }
+      }
+      series.push([ x, point ]);
+    }
+
+    return series;
+  };
+
+})();
+
 Dygraph.Plugins.Rebase = (function() {
   var rebase = function() {
+    this.canonicalRawData = [];
   };
 
   rebase.prototype.toString = function() {
@@ -8,7 +46,7 @@ Dygraph.Plugins.Rebase = (function() {
 
   rebase.prototype.activate = function() {
     return {
-      willDrawChart: this.willDrawChart
+      predraw: this.predraw
     };
   };
 
@@ -20,28 +58,31 @@ Dygraph.Plugins.Rebase = (function() {
     return sets[0][0].y;
   };
 
-  rebase.prototype.willDrawChart = function(e) {
+  rebase.prototype.predraw = function(e) {
     var g = e.dygraph;
+    var rebaseOpt = g.getOption("rebase");
 
-    if (g.getOption("rebase") === null) {
+    if (rebaseOpt === null) {
       return;
     }
 
-    var rebaseOpt = g.getOption("rebase");
+    if (rebaseOpt === "percent") {
+      g.updateOptions(
+          {
+            axes: {
+              y: {
+                axisLabelFormatter: function(y) {
+                  return y + '%';
+                },
+                valueFormatter: function(y) {
+                  return Math.round(y * 100) / 100 + '%';
+                }
+              }
+            }
+          }, true);
+    }
 
-    var p = g.plotter_;
-    var sets = p.layout.points;
-    var compareValue = (rebaseOpt === "percent") ? 0.5 : rebase.getCompareValue(sets);
-
-    sets.map(function(points, idx) {
-      var diff = compareValue - points[0].y;
-
-      if (diff) {
-        points.map(function(point) {
-          point.y = point.y + diff;
-        });
-      }
-    });
+    g.dataHandler_ = new Dygraph.DataHandlers.RebaseHandler(rebaseOpt);
   };
 
   return rebase;
