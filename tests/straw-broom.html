@@ -12,7 +12,6 @@
     -->
     <script type="text/javascript" src="../dygraph-dev.js"></script>
     <script type="text/javascript" src="data.js"></script>
-    <script type="text/javascript" src="../extras/rebase.js"></script>
 
     <style type="text/css">
       #h_g1 { position: absolute; left: 65px; top: 50px; }
@@ -51,12 +50,10 @@
                 if (blockRedraw || initial) return;
                 blockRedraw = true;
                 var range = me.xAxisRange();
-                var yrange = me.yAxisRange();
                 for (var j = 0; j < 3; j++) {
                   if (gs[j] == me) continue;
                   gs[j].updateOptions( {
                     dateWindow: range
-                    //valueRange: yrange
                   } );
                 }
                 blockRedraw = false;
