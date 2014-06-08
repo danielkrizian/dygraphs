@@ -35,7 +35,6 @@
     "plugins/grid.js",
     "plugins/legend.js",
     "plugins/range-selector.js",
-    "dygraph-plugin-install.js",
     "dygraph-options-reference.js",  // Shouldn't be included in generate-combined.sh
     "datahandler/datahandler.js",
     "datahandler/default.js",
@@ -43,7 +42,9 @@
     "datahandler/bars.js",
     "datahandler/bars-error.js",
     "datahandler/bars-custom.js",
-    "datahandler/bars-fractions.js"
+    "datahandler/bars-fractions.js",
+    "plugins/rebase.js",
+    "dygraph-plugin-install.js"
   ];
 
   for (var i = 0; i < source_files.length; i++) {

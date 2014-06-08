@@ -17,5 +17,6 @@ Dygraph.PLUGINS.push(
   Dygraph.Plugins.Annotations,
   Dygraph.Plugins.Grid,
   Dygraph.Plugins.Crosshair,
-  Dygraph.Plugins.CanvasAnnotations
+  Dygraph.Plugins.CanvasAnnotations,
+  Dygraph.Plugins.Rebase
 );

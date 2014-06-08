@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>rebase</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+    <!--
+    For production (minified) code, use:
+    <script type="text/javascript" src="dygraph-combined.js"></script>
+    -->
+    <script type="text/javascript" src="../dygraph-dev.js"></script>
+    <script type="text/javascript" src="data.js"></script>
+
+    <style type="text/css">
+      #h_g1 { position: absolute; left: 65px; top: 50px; }
+      #div_g1 { position: absolute; left: 10px; top: 100px; }
+      #h_g2 { position: absolute; left: 575px; top: 50px; }
+      #div_g2 { position: absolute; left: 520px; top: 100px; }
+      #h_g3 { position: absolute; left: 65px; top: 400px; }
+      #div_g3 { position: absolute; left: 10px; top: 450px; }
+    </style>
+  </head>
+  <body>
+    <p>Hover, click and zoom to test the rebase:</p>
+    <h2 id="h_g1">Value:</h2>
+    <div id="div_g1" style="width:500px; height:300px;"></div>
+    <h2 id="h_g2">Percent:</h2>
+    <div id="div_g2" style="width:500px; height:300px;"></div>
+    <h2 id="h_g3">None:</h2>
+    <div id="div_g3" style="width:500px; height:300px;"></div>
+
+    <script type="text/javascript">
+      var gs = [];
+      var blockRedraw = false;
+      var initialized = false;
+      var rebase = Dygraph.Plugins.Rebase;
+      var rebaseOpts = [100, 'percent', null];
+      for (var i = 1; i <= 3; i++) {
+        var baseOpt = rebaseOpts.shift();
+        gs.push(
+          new Dygraph(
+            document.getElementById("div_g" + i),
+            data,
+            {
+              plugins: [rebase],
+              rebase: baseOpt,
+              drawCallback: function(me, initial) {
+                if (blockRedraw || initial) return;
+                blockRedraw = true;
+                var range = me.xAxisRange();
+                for (var j = 0; j < 3; j++) {
+                  if (gs[j] == me) continue;
+                  gs[j].updateOptions( {
+                    dateWindow: range
+                  } );
+                }
+                blockRedraw = false;
+              }
+            }
+          )
+        );
+      }
+    </script>
+  </body>
+</html>

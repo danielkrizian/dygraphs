@@ -840,6 +840,12 @@ Dygraph.OPTIONS_REFERENCE =  // <JSON>
     "labels": ["Configuration"],
     "type": "boolean or string",
     "description": "Defines crosshair visibility. May be 'horizontal', 'vertical' or 'both'."
+  },
+  "rebase" :{
+    "default": "null",
+    "labels": ["Configuration"],
+    "type": "numeric",
+    "description": "Defines value each series will rebase to."
   }
 }
 ;  // </JSON>
