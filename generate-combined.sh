@@ -15,8 +15,6 @@ GetSources () {
     dygraph-interaction-model.js \
     dygraph-tickers.js \
     dygraph-plugin-base.js \
-    plugins/*.js \
-    dygraph-plugin-install.js \
     datahandler/datahandler.js \
     datahandler/default.js \
     datahandler/default-fractions.js \
@@ -24,8 +22,10 @@ GetSources () {
     datahandler/bars-custom.js \
     datahandler/bars-error.js \
     datahandler/bars-fractions.js \
+    plugins/*.js \
+    dygraph-plugin-install.js \
     extras/shapes.js \
-    extras/plotters.js 
+    extras/plotters.js
   do
       echo "$F"
   done
