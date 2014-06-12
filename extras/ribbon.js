@@ -29,6 +29,12 @@ Dygraph.Plugins.Ribbon = (function() {
     }
     if (g.getOption("ribbon") !== null) {
       Dygraph.update(this.ribbonOptions_, g.getOption("ribbon"));
+      if (this.ribbonOptions_.height > 1) {
+        this.ribbonOptions_.height = 1;
+      }
+      if (this.ribbonOptions_.height < 0) {
+        this.ribbonOptions_.height = 0;
+      }
     }
     if (this.ribbonData_ !== null || this.ribbonDataParser_ !== null) {
       return {
@@ -60,8 +66,9 @@ Dygraph.Plugins.Ribbon = (function() {
       var left = g.toDomCoords(point.xval, 0)[0];
       var right = (nextpoint === undefined) ? area.w : g.toDomCoords(nextpoint.xval, 0)[0];
       var color = this.decodeColor(this.ribbonData_[point.idx]);
+      var y = area.h * (1 - this.ribbonOptions_.height) + area.y;
       g.hidden_ctx_.fillStyle = color;
-      g.hidden_ctx_.fillRect(left, area.y, right - left, area.h);
+      g.hidden_ctx_.fillRect(left, y, right - left, area.h);
     }
   };
 

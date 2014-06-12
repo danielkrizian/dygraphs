@@ -21,6 +21,9 @@
     <h1>Colour Ribbon with Encoded colors in data column</h1>
     <div id="div_g2" style="width:600px; height:300px;"></div>
 
+    <h1>Colour Ribbon with customized height</h1>
+    <div id="div_g3" style="width:600px; height:300px;"></div>
+
     <script type="text/javascript">
       function data() {
         return "Date,High,Low\n" +
@@ -36,7 +39,7 @@
         "20070110,57,37\n";
       }
 
-      var g = new Dygraph(
+      var g1 = new Dygraph(
         document.getElementById("div_g1"),
         data, {
           plugins: [Dygraph.Plugins.Ribbon],
@@ -59,7 +62,7 @@
         "20070110,57,37,0.5\n";
       }
 
-      var g = new Dygraph(
+      var g2 = new Dygraph(
         document.getElementById("div_g2"),
         data_color, {
           plugins: [Dygraph.Plugins.Ribbon],
@@ -77,6 +80,18 @@
             return colors;
           },
           ribbonData: null // TODO add to options
+        }
+      );
+
+      var g3 = new Dygraph(
+        document.getElementById("div_g3"),
+        data, {
+          plugins: [Dygraph.Plugins.Ribbon],
+          ribbonDataParser: null, // TODO add to options
+          ribbonData: [0, 0.5, 0.5, 1, 1, 1, 0, 0, 0, 0.5],
+          ribbon: {
+            height: 0.75
+          }
         }
       );
     </script>
