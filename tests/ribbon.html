@@ -24,6 +24,9 @@
     <h1>Colour Ribbon with customized height</h1>
     <div id="div_g3" style="width:600px; height:300px;"></div>
 
+    <h1>Colour Ribbon with customized position</h1>
+    <div id="div_g4" style="width:600px; height:300px;"></div>
+
     <script type="text/javascript">
       function data() {
         return "Date,High,Low\n" +
@@ -91,6 +94,19 @@
           ribbonData: [0, 0.5, 0.5, 1, 1, 1, 0, 0, 0, 0.5],
           ribbon: {
             height: 0.75
+          }
+        }
+      );
+
+      var g4 = new Dygraph(
+        document.getElementById("div_g4"),
+        data, {
+          plugins: [Dygraph.Plugins.Ribbon],
+          ribbonDataParser: null, // TODO add to options
+          ribbonData: [0, 0.5, 0.5, 1, 1, 1, 0, 0, 0, 0.5],
+          ribbon: {
+            height: 0.75,
+            position: 0.25
           }
         }
       );

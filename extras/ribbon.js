@@ -29,12 +29,10 @@ Dygraph.Plugins.Ribbon = (function() {
     }
     if (g.getOption("ribbon") !== null) {
       Dygraph.update(this.ribbonOptions_, g.getOption("ribbon"));
-      if (this.ribbonOptions_.height > 1) {
-        this.ribbonOptions_.height = 1;
-      }
-      if (this.ribbonOptions_.height < 0) {
-        this.ribbonOptions_.height = 0;
-      }
+      this.ribbonOptions_.height = Math.min(this.ribbonOptions_.height, 1);
+      this.ribbonOptions_.height = Math.max(this.ribbonOptions_.height, 0);
+      this.ribbonOptions_.position = Math.min(this.ribbonOptions_.position, 1);
+      this.ribbonOptions_.position = Math.max(this.ribbonOptions_.position, 0);
     }
     if (this.ribbonData_ !== null || this.ribbonDataParser_ !== null) {
       return {
@@ -67,8 +65,9 @@ Dygraph.Plugins.Ribbon = (function() {
       var right = (nextpoint === undefined) ? area.w : g.toDomCoords(nextpoint.xval, 0)[0];
       var color = this.decodeColor(this.ribbonData_[point.idx]);
       var y = area.h * (1 - this.ribbonOptions_.height) + area.y;
+      var h = (area.h - area.h * this.ribbonOptions_.position) - y;
       g.hidden_ctx_.fillStyle = color;
-      g.hidden_ctx_.fillRect(left, y, right - left, area.h);
+      g.hidden_ctx_.fillRect(left, y, right - left, h);
     }
   };
 
