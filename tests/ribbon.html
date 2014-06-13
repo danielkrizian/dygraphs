@@ -11,7 +11,6 @@
     <script type="text/javascript" src="dygraph-combined.js"></script>
     -->
     <script type="text/javascript" src="../dygraph-dev.js"></script>
-    <script type="text/javascript" src="../extras/ribbon.js"></script>
   </head>
   <body>
     <h1>Colour Ribbon with default options</h1>
@@ -45,7 +44,6 @@
       var g1 = new Dygraph(
         document.getElementById("div_g1"),
         data, {
-          plugins: [Dygraph.Plugins.Ribbon],
           ribbonDataParser: null, // TODO add to options
           ribbonData: [0, 0.5, 0.5, 1, 1, 1, 0, 0, 0, 0.5]
         }
@@ -68,7 +66,6 @@
       var g2 = new Dygraph(
         document.getElementById("div_g2"),
         data_color, {
-          plugins: [Dygraph.Plugins.Ribbon],
           ribbonDataParser: function(data, dygraph) {
             var colorIdx = 3;
             var colors = [];
@@ -89,7 +86,6 @@
       var g3 = new Dygraph(
         document.getElementById("div_g3"),
         data, {
-          plugins: [Dygraph.Plugins.Ribbon],
           ribbonDataParser: null, // TODO add to options
           ribbonData: [0, 0.5, 0.5, 1, 1, 1, 0, 0, 0, 0.5],
           ribbon: {
@@ -101,7 +97,6 @@
       var g4 = new Dygraph(
         document.getElementById("div_g4"),
         data, {
-          plugins: [Dygraph.Plugins.Ribbon],
           ribbonDataParser: null, // TODO add to options
           ribbonData: [0, 0.5, 0.5, 1, 1, 1, 0, 0, 0, 0.5],
           ribbon: {
