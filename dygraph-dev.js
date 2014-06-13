@@ -35,6 +35,7 @@
     "plugins/grid.js",
     "plugins/legend.js",
     "plugins/range-selector.js",
+    "plugins/ribbon.js",
     "dygraph-options-reference.js",  // Shouldn't be included in generate-combined.sh
     "datahandler/datahandler.js",
     "datahandler/default.js",

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>coloured ribbon</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+    <!--
+    For production (minified) code, use:
+    <script type="text/javascript" src="dygraph-combined.js"></script>
+    -->
+    <script type="text/javascript" src="../dygraph-dev.js"></script>
+  </head>
+  <body>
+    <h1>Colour Ribbon with default options</h1>
+    <p>Encoded colours provided as options parameter <code>ribbonData</code></p>
+    <div id="div_g1" style="width:600px; height:300px;"></div>
+
+    <h1>Colour Ribbon with Encoded colors in data column</h1>
+    <div id="div_g2" style="width:600px; height:300px;"></div>
+
+    <h1>Colour Ribbon with customized height</h1>
+    <div id="div_g3" style="width:600px; height:300px;"></div>
+
+    <h1>Colour Ribbon with customized position</h1>
+    <div id="div_g4" style="width:600px; height:300px;"></div>
+
+    <script type="text/javascript">
+      function data() {
+        return "Date,High,Low\n" +
+        "20070101,62,39\n" +
+        "20070102,62,44\n" +
+        "20070103,62,42\n" +
+        "20070104,57,45\n" +
+        "20070105,54,44\n" +
+        "20070106,55,36\n" +
+        "20070107,62,45\n" +
+        "20070108,66,48\n" +
+        "20070109,63,39\n" +
+        "20070110,57,37\n";
+      }
+
+      var g1 = new Dygraph(
+        document.getElementById("div_g1"),
+        data, {
+          ribbonDataParser: null, // TODO add to options
+          ribbonData: [0, 0.5, 0.5, 1, 1, 1, 0, 0, 0, 0.5]
+        }
+      );
+
+      function data_color() {
+        return "Date,High,Low,Color\n" +
+        "20070101,62,39\n" +
+        "20070102,62,44,0.5\n" +
+        "20070103,62,42,0.5\n" +
+        "20070104,57,45,1\n" +
+        "20070105,54,44,1\n" +
+        "20070106,55,36,1\n" +
+        "20070107,62,45\n" +
+        "20070108,66,48\n" +
+        "20070109,63,39\n" +
+        "20070110,57,37,0.5\n";
+      }
+
+      var g2 = new Dygraph(
+        document.getElementById("div_g2"),
+        data_color, {
+          ribbonDataParser: function(data, dygraph) {
+            var colorIdx = 3;
+            var colors = [];
+            for (var i = 0; i < data.length; i++) {
+              var row = data[i];
+              if (row[colorIdx]) {
+                colors.push(row[colorIdx]);
+              } else {
+                colors.push(0);
+              }
+            }
+            return colors;
+          },
+          ribbonData: null // TODO add to options
+        }
+      );
+
+      var g3 = new Dygraph(
+        document.getElementById("div_g3"),
+        data, {
+          ribbonDataParser: null, // TODO add to options
+          ribbonData: [0, 0.5, 0.5, 1, 1, 1, 0, 0, 0, 0.5],
+          ribbon: {
+            height: 0.75
+          }
+        }
+      );
+
+      var g4 = new Dygraph(
+        document.getElementById("div_g4"),
+        data, {
+          ribbonDataParser: null, // TODO add to options
+          ribbonData: [0, 0.5, 0.5, 1, 1, 1, 0, 0, 0, 0.5],
+          ribbon: {
+            height: 0.75,
+            position: 0.25
+          }
+        }
+      );
+    </script>
+  </body>
+</html>
