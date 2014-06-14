@@ -35,6 +35,18 @@ crosshair.prototype.activate = function(g) {
   this.canvas_.style.width = g.width_ + "px";    // for IE
   this.canvas_.style.height = g.height_ + "px";  // for IE
   g.graphDiv.appendChild(this.canvas_);
+  var self = this;
+
+  g.addAndTrackEvent(window, "resize", function(e) {
+    if (self.canvas_.width !== g.width_) {
+      self.canvas_.width = g.width_;
+      self.canvas_.style.width = g.width_ + "px";
+    }
+    if (self.canvas_.height !== g.height_) {
+      self.canvas_.height = g.height_;
+      self.canvas_.style.height = g.height_ + "px";
+    }
+  });
 
   return {
     select: this.select,
@@ -50,7 +62,7 @@ crosshair.prototype.select = function(e) {
   var options = this.options;
 
   if (options === false) return;
-  
+
   ctx.clearRect(0, 0, width, height);
   ctx.strokeStyle = "rgba(0, 0, 0,0.3)";
   ctx.beginPath();
