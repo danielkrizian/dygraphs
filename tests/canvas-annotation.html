@@ -178,6 +178,14 @@ var gs = [];
 "options": {
  "width":    800,
 "height":    400,
+"axes": {
+  "x": {
+    "valueFormatter": function(ms) {
+      var date = new Date(ms);
+      return date.toLocaleDateString();
+    }
+  }
+},
 "labels": [ "t", "Close", "SMA(Close, 200)" ],
 "rightGap":     20,
 "highlightCallback": 
