@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>Compress candlestick chart demo</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+    <script type="text/javascript" src="../dygraph-dev.js"></script>
+    <script type="text/javascript" src="../extras/plotters.js"></script>
+
+    <style type="text/css">
+      body {
+        max-width: 750px;
+      }
+      div.chart {
+        width: 640px;
+        height: 320px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="candlechart" class=chart></div>
+    <script type="text/javascript">
+      Date.prototype.getWeek = function(){
+        var d = new Date(+this);
+        d.setHours(0,0,0);
+        d.setDate(d.getDate()+4-(d.getDay()||7));
+        return Math.ceil((((d-new Date(d.getFullYear(),0,1))/8.64e7)+1)/7);
+      };
+      Dygraph.DataHandlers.CompressHandler = function() {};
+      var CompressHandler = Dygraph.DataHandlers.CompressHandler;
+      CompressHandler.prototype = new Dygraph.DataHandlers.DefaultHandler();
+      CompressHandler.prototype.seriesToPoints = function(series, setName, boundaryIdStart) {
+        var firstItem = series[0];
+        var lastItem = series[series.length - 1];
+        var dateDiff = lastItem[0] - firstItem[0];
+        var dayMs = 1000 * 60 * 60 * 24;
+        var compress = "days";
+        var compressedSeries = [];
+        switch (true) {
+          case dateDiff >= 5 * 365 * dayMs:
+            // compress to years
+            compress = "years";
+            break;
+          case dateDiff >= 365 * dayMs:
+            // compress to months
+            compress = "months";
+            break;
+          case dateDiff >= 10 * 30 * dayMs:
+            // compress to weeks
+            compress = "weeks";
+            break;
+          default:
+            // compress to days
+        }
+        console.log(compress);
+        var points = [];
+
+        if (compress === "years") {
+          var year;
+          var buffer = [];
+          for (var i = 0; i < series.length; i++) {
+            var item = series[i];
+            var currYear = new Date(item[0]).getFullYear();
+            if (year === undefined) {
+              year = currYear;
+            }
+            if (year === currYear) {
+              buffer.push(item);
+            } else {
+              compressedSeries.push(buffer);
+              buffer = [];
+              buffer.push(item);
+              year = currYear;
+            }
+          }
+        } else if (compress === "months") {
+          var month;
+          var buffer = [];
+          for (var i = 0; i < series.length; i++) {
+            var item = series[i];
+            var currMonth = new Date(item[0]).getMonth();
+            if (month === undefined) {
+              month = currMonth;
+            }
+            if (month === currMonth) {
+              buffer.push(item);
+            } else {
+              compressedSeries.push(buffer);
+              buffer = [];
+              buffer.push(item);
+              month = currMonth;
+            }
+          }
+        } else if (compress === "weeks") {
+          var week;
+          var buffer = [];
+          for (var i = 0; i < series.length; i++) {
+            var item = series[i];
+            var currWeek = new Date(item[0]).getWeek();
+            if (week === undefined) {
+              week = currWeek;
+            }
+            if (week === currWeek) {
+              buffer.push(item);
+            } else {
+              compressedSeries.push(buffer);
+              buffer = [];
+              buffer.push(item);
+              week = currWeek;
+            }
+          }
+        }
+
+        compressedSeries = compressedSeries.reduce(function(prev, curr) {
+          var date = curr[curr.length - 1][0];
+          var sum = curr.reduce(function(p, c) {
+            return p + c[1];
+          }, 0);
+          var avg = sum / curr.length;
+          prev.push([date, avg]);
+          return prev;
+        }, []);
+
+        if (compressedSeries.length === 0) {
+          compressedSeries = series;
+        }
+
+        for (var i = 0; i < compressedSeries.length; ++i) {
+          var item = compressedSeries[i];
+          var yraw = item[1];
+          var yval = yraw === null ? null : Dygraph.DataHandler.parseFloat(yraw);
+          var point = {
+            x : NaN,
+            y : NaN,
+            xval : Dygraph.DataHandler.parseFloat(item[0]),
+            yval : yval,
+            name : setName,
+            idx : i + boundaryIdStart
+          };
+          points.push(point);
+        }
+        this.onPointsCreated_(compressedSeries, points);
+        return points;
+      }
+
+      var candleData =
+      "Date,Open,Close,High,Low\n";
+      for (var i = 0; i <= 365 * 10; i++) {
+        var d = new Date(i
+                         * 1000 // ms
+                         * 60   // sec
+                         * 60   // min
+                         * 24   // hr
+                        );
+        var dateStr = d.toISOString().match(/^\d{4}-\d{2}-\d{2}/)[0];
+        var min = 100;
+        var max = 400;
+        var open = Math.random() * (max - min) + min;
+        var close = Math.random() * (max - min) + min;
+        var high = Math.max(open, close) * 1.25;
+        var low = Math.min(open, close) * 0.75;
+
+        candleData += [dateStr, open, close, high, low].join(",") + "\n";
+      }
+      g = new Dygraph(
+        document.getElementById("candlechart"),
+        candleData,
+        {
+          plotter: Dygraph.Plotters.candlePlotter,
+          dataHandler: Dygraph.DataHandlers.CompressHandler
+        }
+      );
+    </script>
+  </body>
+</html>
