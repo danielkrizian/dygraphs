@@ -115,11 +115,30 @@
 
         compressedSeries = compressedSeries.reduce(function(prev, curr) {
           var date = curr[curr.length - 1][0];
-          var sum = curr.reduce(function(p, c) {
-            return p + c[1];
-          }, 0);
-          var avg = sum / curr.length;
-          prev.push([date, avg]);
+          var value;
+          switch (setName.toLowerCase()) {
+            case "open":
+              value = curr[0][1]; // Open of the first day
+            break;
+            case "high":
+              // Highest High of all the daily Highs
+              value = Math.max.apply(null, curr.reduce(function(p, c) {
+                p.push(c[1]);
+                return p;
+              }, []));
+            break;
+            case "low":
+              // Lowest Low of all the daily Lows
+              value = Math.min.apply(null, curr.reduce(function(p, c) {
+                p.push(c[1]);
+                return p;
+              }, []));
+            break;
+            case "close":
+              value = curr[curr.length - 1][1]; // Close of the last day
+            break;
+          }
+          prev.push([date, value]);
           return prev;
         }, []);
 
