@@ -32,90 +32,48 @@
       var CompressHandler = Dygraph.DataHandlers.CompressHandler;
       CompressHandler.prototype = new Dygraph.DataHandlers.DefaultHandler();
       CompressHandler.prototype.seriesToPoints = function(series, setName, boundaryIdStart) {
+        var compressRatios = [
+          365,              // annually
+          90,               // quarterly
+          30,               // monthly
+          7,                // weekly
+          1,                // daily
+          //1 / 24,           // hourly
+          //1 / 24 / 60,      // minutely
+          //1 / 24 / 60 / 6,  // 10 seconds
+          //1 / 24 / 60 / 60  // 1 second
+        ];
         var firstItem = series[0];
         var lastItem = series[series.length - 1];
         var dateDiff = lastItem[0] - firstItem[0];
         var dayMs = 1000 * 60 * 60 * 24;
         var compress = "days";
         var compressedSeries = [];
-        switch (true) {
-          case dateDiff >= 5 * 365 * dayMs:
-            // compress to years
-            compress = "years";
-            break;
-          case dateDiff >= 365 * dayMs:
-            // compress to months
-            compress = "months";
-            break;
-          case dateDiff >= 10 * 30 * dayMs:
-            // compress to weeks
-            compress = "weeks";
-            break;
-          default:
-            // compress to days
-        }
-        console.log(compress);
+        var ratio = 1;
         var points = [];
 
-        if (compress === "years") {
-          var year;
-          var buffer = [];
-          for (var i = 0; i < series.length; i++) {
-            var item = series[i];
-            var currYear = new Date(item[0]).getFullYear();
-            if (year === undefined) {
-              year = currYear;
-            }
-            if (year === currYear) {
-              buffer.push(item);
-            } else {
-              compressedSeries.push(buffer);
-              buffer = [];
-              buffer.push(item);
-              year = currYear;
-            }
+        for (var i = 0; i < compressRatios.length; i++) {
+          ratio = compressRatios[i] * dayMs;
+          var bars = Math.round(dateDiff / ratio);
+          if (bars < 50 && bars > 20) {
+            break;
           }
-        } else if (compress === "months") {
-          var month;
-          var buffer = [];
-          for (var i = 0; i < series.length; i++) {
-            var item = series[i];
-            var currMonth = new Date(item[0]).getMonth();
-            if (month === undefined) {
-              month = currMonth;
-            }
-            if (month === currMonth) {
-              buffer.push(item);
-            } else {
-              compressedSeries.push(buffer);
-              buffer = [];
-              buffer.push(item);
-              month = currMonth;
-            }
+        }
+
+        for (var i = 0; i < series.length; i++) {
+          var item = series[i];
+          var diff = item[0] - firstItem[0];
+          var idx = Math.floor(diff / ratio);
+          if (compressedSeries[idx] === undefined) {
+            compressedSeries[idx] = [];
           }
-        } else if (compress === "weeks") {
-          var week;
-          var buffer = [];
-          for (var i = 0; i < series.length; i++) {
-            var item = series[i];
-            var currWeek = new Date(item[0]).getWeek();
-            if (week === undefined) {
-              week = currWeek;
-            }
-            if (week === currWeek) {
-              buffer.push(item);
-            } else {
-              compressedSeries.push(buffer);
-              buffer = [];
-              buffer.push(item);
-              week = currWeek;
-            }
-          }
+          compressedSeries[idx].push(item);
         }
 
         compressedSeries = compressedSeries.reduce(function(prev, curr) {
           var date = curr[curr.length - 1][0];
           var value;
+
           switch (setName.toLowerCase()) {
             case "open":
               value = curr[0][1]; // Open of the first day
@@ -123,28 +81,26 @@
             case "high":
               // Highest High of all the daily Highs
               value = Math.max.apply(null, curr.reduce(function(p, c) {
-                p.push(c[1]);
-                return p;
-              }, []));
+              p.push(c[1]);
+              return p;
+            }, []));
             break;
             case "low":
               // Lowest Low of all the daily Lows
               value = Math.min.apply(null, curr.reduce(function(p, c) {
-                p.push(c[1]);
-                return p;
-              }, []));
+              p.push(c[1]);
+              return p;
+            }, []));
             break;
             case "close":
               value = curr[curr.length - 1][1]; // Close of the last day
             break;
           }
           prev.push([date, value]);
+
           return prev;
         }, []);
-
-        if (compressedSeries.length === 0) {
-          compressedSeries = series;
-        }
+        //compressedSeries = series;
 
         for (var i = 0; i < compressedSeries.length; ++i) {
           var item = compressedSeries[i];
