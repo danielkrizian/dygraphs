@@ -151,7 +151,7 @@
 
               // Do not show the first bar if the amount of days in the period in
               // lesser then 95% of canonical amount of days for the period
-              if (dateDiff < canonical * 0.95) {
+              if (dateDiff < Math.round(canonical * 0.95)) {
                 return prev;
               }
             }
