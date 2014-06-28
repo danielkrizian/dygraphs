@@ -136,9 +136,25 @@
               period = currentPeriod;
             }
           }
-          return compressed.reduce(function(prev, curr) {
+          return compressed.reduce(function(prev, curr, index) {
             var date = curr[curr.length - 1][0];
             var value;
+
+            // Check if we have more or less full period for the first bar
+            if (index === 0) {
+              var range = [];
+              range.push(curr[0][0]); // first date
+              range.push(date); // last date
+              var dateDiff = (range[1] - range[0]) / dayMs;
+              var idx = compress.titles.indexOf(title);
+              var canonical = compress.days[idx]; // Canonical amount of days in the period
+
+              // Do not show the first bar if the amount of days in the period in
+              // lesser then 95% of canonical amount of days for the period
+              if (dateDiff < canonical * 0.95) {
+                return prev;
+              }
+            }
 
             switch (setName.toLowerCase()) {
               case "open":
