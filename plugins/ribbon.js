@@ -62,7 +62,7 @@ Dygraph.Plugins.Ribbon = (function() {
       var nextpoint = points[i + 1];
 
       var left = g.toDomCoords(point.xval, 0)[0];
-      var right = (nextpoint === undefined) ? area.w : g.toDomCoords(nextpoint.xval, 0)[0];
+      var right = (nextpoint === undefined) ? g.canvas_.width : g.toDomCoords(nextpoint.xval, 0)[0];
       var color = this.decodeColor(this.ribbonData_[point.idx]);
       var y = area.h * (1 - this.ribbonOptions_.height) + area.y;
       var h = (area.h - area.h * this.ribbonOptions_.position) - y;
