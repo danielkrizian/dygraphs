@@ -1,16 +1,14 @@
 (function() {
   var candlePlotter = function(e) {
+    if (e.seriesIndex > 3) {
+      Dygraph.Plotters.linePlotter(e);
+    }
     // This is the officially endorsed way to plot all the series at once.
     if (e.seriesIndex !== 0) return;
 
-    var setCount = e.seriesCount;
-    if (setCount != 4) {
-      throw "Exactly 4 prices each point must be provided for candle chart (open close high low)";
-    }
-
     var prices = [];
     var price;
-    var sets = e.allSeriesPoints;
+    var sets = e.allSeriesPoints.slice(0, 4); // Slice first four sets for candlestick chart
     for (var p = 0 ; p < sets[0].length; p++) {
       price = {
         open : sets[0][p].yval,
