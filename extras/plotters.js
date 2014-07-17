@@ -1,5 +1,4 @@
 (function() {
-  var BAR_WIDTH = 8;
   var candlePlotter = function(e) {
     // This is the officially endorsed way to plot all the series at once.
     if (e.seriesIndex !== 0) return;
@@ -31,6 +30,15 @@
     ctx.strokeStyle = '#202020';
     ctx.lineWidth = 0.6;
 
+    var minBarWidth = 2;
+    var numBars = prices.length + 1; // To compensate the probably removed first "incomplete" bar
+    var barsGap = 5;
+    var barWidth = Math.round(area.w / numBars - barsGap);
+    if (barWidth % 2 !== 0) {
+      barWidth++;
+    }
+    barWidth = Math.max(barWidth, minBarWidth);
+
     for (p = 0 ; p < prices.length; p++) {
       ctx.beginPath();
 
@@ -52,7 +60,7 @@
         bodyY = area.h * price.closeY  + area.y;
       }
       var bodyHeight = area.h * Math.abs(price.openY - price.closeY);
-      ctx.fillRect(centerX - BAR_WIDTH / 2, bodyY, BAR_WIDTH,  bodyHeight);
+      ctx.fillRect(centerX - barWidth / 2, bodyY, barWidth,  bodyHeight);
     }
   };
 
