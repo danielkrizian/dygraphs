@@ -30,8 +30,7 @@
 
     var minBarWidth = 2;
     var numBars = prices.length + 1; // To compensate the probably removed first "incomplete" bar
-    var barsGap = 5;
-    var barWidth = Math.round(area.w / numBars - barsGap);
+    var barWidth = Math.round((area.w / numBars) / 2);
     if (barWidth % 2 !== 0) {
       barWidth++;
     }
